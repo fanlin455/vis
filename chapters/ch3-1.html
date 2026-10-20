@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 7 章 · 其他可视化工具与库 — 可视化导论</title>
+<meta name="description" content="比较 D3、ECharts、Plotly、Observable 与 WebGL 工具,通过决策树完成选型。">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+  .opt-grid { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+  .opt-json { background: var(--bg-code); color: #dce4f5; border-radius: 10px; padding: 14px 16px;
+    font-family: var(--mono); font-size: 12px; line-height: 1.75; overflow-x: auto; }
+  .opt-json .k { color: #82aaff; } .opt-json .s { color: #a5e075; } .opt-json .n { color: #f78c6c; }
+  .dt-wrap { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
+  .dt-node { rx: 8; }
+  .dt-qbox { border: 1px solid var(--border); border-radius: 12px; padding: 18px; background: #fff; box-shadow: var(--shadow); }
+  .dt-qbox h4 { font-size: 15.5px; margin-bottom: 10px; }
+  .dt-opts { display: flex; flex-direction: column; gap: 8px; }
+  .dt-opts button { text-align: left; padding: 10px 14px; border-radius: 9px; border: 1px solid var(--border);
+    background: #fff; font-size: 13.5px; cursor: pointer; font-family: var(--sans); transition: all .15s; color: var(--text); }
+  .dt-opts button:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .dt-result { background: linear-gradient(135deg,#f0f6ff,#ecfbfb); border: 1px solid #d8e6fd; border-radius: 12px; padding: 18px; }
+  .dt-result .tool { font-size: 22px; font-weight: 800; color: var(--accent); }
+  table.eco { border-collapse: collapse; font-size: 13px; width: 100%; }
+  table.eco th { background: var(--bg-soft); padding: 9px 12px; text-align: left; color: var(--text-2); border-bottom: 2px solid var(--border); }
+  table.eco td { padding: 9px 12px; border-bottom: 1px solid var(--border); }
+  table.eco tr { transition: background .15s; }
+  table.eco tbody tr:hover { background: var(--accent-soft); }
+  table.eco tr.rec { background: #e7f9f0; }
+  .pill { display: inline-block; font-size: 11.5px; padding: 2px 9px; border-radius: 999px; background: var(--bg-soft); color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="../index.html"><span class="brand-mark">VIS</span><span>可视化导论</span></a>
+    <nav><a href="../index.html#chapters">全部章节</a></nav>
+  </div>
+</header>
+
+<div class="ch-layout">
+
+  <aside class="toc">
+    <a class="toc-back" href="../index.html">← 返回门户</a>
+    <div class="toc-ch">第 7 章 · 拓展篇</div>
+    <a href="#kp1">7.1 ECharts 与声明式范式</a>
+    <a href="#kp2">7.2 选型决策树</a>
+    <a href="#kp3">7.3 工具生态对比</a>
+  </aside>
+
+  <main>
+    <div class="ch-hero">
+      <span class="kicker">第 7 章 · 拓展篇 · ★★☆</span>
+      <h1>其他可视化工具与库</h1>
+      <p class="lead">
+        D3 是"造图纸、造零件"的库,但多数业务场景只需要"标准图表 + 快速上线"。
+        本章横向看一圈生态:ECharts、Chart.js、Plotly、deck.gl……
+        <strong>工具没有最好,只有最合适</strong>——最后送你一棵可交互的选型决策树。
+      </p>
+      <div class="ch-tags"><span>ECharts</span><span>Chart.js</span><span>Plotly</span><span>WebGL</span><span>选型方法</span></div>
+    </div>
+
+    <div class="objectives">
+      <h2>🎯 学习目标</h2>
+      <ul>
+        <li>理解<strong>声明式(配置)</strong>与<strong>命令式(指令)</strong>两种范式的区别与代价</li>
+        <li>能写出一个最小可用的 ECharts option 配置</li>
+        <li>会用"数据规模 / 定制需求 / 领域场景"三问完成工具选型</li>
+        <li>知道 WebGL 阵营(deck.gl 等)解决什么量级的问题</li>
+      </ul>
+    </div>
+
+    <!-- ================= KP 7.1 ================= -->
+    <section class="kp" id="kp1">
+      <div class="kp-head"><span class="kp-badge">KP 7.1</span><h2>ECharts:写配置,不写指令</h2></div>
+      <div class="kp-body">
+        <p>
+          用 D3 画柱状图,你要自己建比例尺、画坐标轴、挨个摆矩形——这是<strong>命令式</strong>:
+          告诉浏览器"每一步怎么做"。ECharts 反其道而行:<strong>声明式</strong>——
+          你只描述"要什么"(数据、图类型、颜色),渲染引擎包办全部细节。
+        </p>
+        <ul>
+          <li><strong>上手快</strong>:一个 <code>option</code> 对象出一张图,文档、示例库极其完善(中文友好)</li>
+          <li><strong>默认好看</strong>:主题、tooltip、动画、移动端适配全部内置</li>
+          <li><strong>代价</strong>:非标准布局(如课程路径图)很难实现;细节控制权少于 D3</li>
+          <li>默认 Canvas 渲染,大数据量与「large」模式表现好;可切 SVG 渲染器省内存</li>
+        </ul>
+        <div class="note">💡 一句话记范式:D3 是"给你乐高"(指令),ECharts 是"给你成品柜,你填参数"(配置)。
+        业务报表选配置式,研究型/定制型作品选指令式。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>echarts-quick.js</div>
+        <button class="copy">复制</button>
+<pre><code>const chart = echarts.init(document.getElementById("chart"));
+
+const option = {
+  title:  { text: "月销量" },
+  tooltip: { trigger: "axis" },          // 悬停提示:内置,零代码
+  xAxis:  { type: "category", data: ["1月","2月","3月","4月","5月","6月"] },
+  yAxis:  { type: "value" },
+  series: [{
+    name: "销量",
+    type: "bar",                          // 换 "line" / "pie" 即换图型
+    data: [120, 200, 150, 80, 270, 310],
+    itemStyle: { color: "#2f6fed", borderRadius: [5,5,0,0] }
+  }]
+};
+
+chart.setOption(option);    // 之后改 option 再 setOption → 自动 diff + 动画过渡</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 左改配置,右看结果(模拟 setOption)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <button class="primary opt-btn" data-opt="bar">type: "bar"</button>
+            <button class="opt-btn" data-opt="line">type: "line"</button>
+            <button class="opt-btn" data-opt="pie">type: "pie"</button>
+            <button class="opt-btn" data-opt="smooth">smooth: true</button>
+          </div>
+        </div>
+        <div class="demo-body">
+          <div class="opt-grid">
+            <div class="opt-json" id="opt-json"></div>
+            <div><svg id="opt-chart" viewBox="0 0 340 260" style="width:100%;border:1px solid var(--border);border-radius:10px;background:#fff"></svg></div>
+          </div>
+        </div>
+        <div class="demo-tip">提示:真实 ECharts 中,切换 type 只是改 option 里一个字符串再 setOption——引擎自动完成销毁与重建。本演示用 SVG 手工模拟其效果。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 7.2 ================= -->
+    <section class="kp" id="kp2">
+      <div class="kp-head"><span class="kp-badge">KP 7.2</span><h2>选型决策树:三问定工具</h2></div>
+      <div class="kp-body">
+        <p>面对新项目,按顺序问自己三个问题,基本就能锁定工具:
+        </p>
+        <ul>
+          <li><strong>一问规模</strong>:数据点几千以内,任何库都行;十万级以上,必须 Canvas/WebGL 阵营</li>
+          <li><strong>二问定制</strong>:标准图表(报表、监控)→ 配置式;独创布局、叙事型作品 → 指令式(D3)</li>
+          <li><strong>三问领域</strong>:地理大数据 → deck.gl/Kepler.gl;科学计算 → Plotly;探索分析 → Observable</li>
+        </ul>
+        <div class="note">💡 团队因素同样真实:文档语言、社区活跃度、招人难度,都该进入决策——技术上"次优"但团队都会用的工具,往往是工程上的"最优"。</div>
+      </div>
+
+      <div class="demo" id="kp2-demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 交互决策树(回答问题,路径实时高亮)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl"><button id="dt-restart">↺ 重新开始</button></div>
+        </div>
+        <div class="demo-body">
+          <div class="dt-wrap">
+            <svg id="dt-svg" viewBox="0 0 400 380" style="width:100%;border:1px solid var(--border);border-radius:10px;background:#fbfcfe"></svg>
+            <div id="dt-panel"></div>
+          </div>
+        </div>
+        <div class="demo-tip">提示:左侧是完整决策树,你走的路径会加粗高亮;即使走错,点"重新开始"即可回溯。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 7.3 ================= -->
+    <section class="kp" id="kp3">
+      <div class="kp-head"><span class="kp-badge">KP 7.3</span><h2>生态对比:一张表看全家福</h2></div>
+      <div class="kp-body">
+        <p>
+          把主流工具放进同一张表,按四个维度打分(★ 越多越强)。
+          注意:每一列的"强"都对应着某种<strong>代价</strong>——定制能力强往往意味着学习曲线陡。
+        </p>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 工具对比表(悬停看说明 · 选场景高亮推荐)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <label for="eco-filter">你的场景:</label>
+            <select id="eco-filter">
+              <option value="">— 全部 —</option>
+              <option value="fast">快速出标准图表</option>
+              <option value="custom">深度定制 / 叙事作品</option>
+              <option value="big">十万级以上数据</option>
+              <option value="geo">地理空间大数据</option>
+            </select>
+          </div>
+        </div>
+        <div class="demo-body">
+          <table class="eco" id="eco-table">
+            <caption class="sr-only">常用可视化工具特性对比</caption>
+            <thead><tr><th scope="col">工具</th><th scope="col">范式</th><th scope="col">渲染</th><th scope="col">上手</th><th scope="col">定制力</th><th scope="col">大数据</th><th scope="col">最适场景</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="demo-tip">提示:选"你的场景"后,推荐行变绿——注意不同场景下"最优解"完全不同,这正是本章的核心信息。</div>
+      </div>
+    </section>
+
+    <div class="ch-pager">
+      <a href="ch2-3.html"><span class="dir">← 上一章</span><span class="ttl">第 6 章 · D3 可视化实践</span></a>
+      <a class="next" href="ch3-2.html"><span class="dir">下一章 →</span><span class="ttl">第 8 章 · 专题:表格可视化</span></a>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/main.js"></script>
+<script src="../assets/lesson.js"></script>
+<script>
+(function () {
+  const V = window.Vis;
+
+  /* ========== 演示 7.1:option 配置切换 ========== */
+  const optJson = document.getElementById("opt-json");
+  const optChart = document.getElementById("opt-chart");
+  const DATA = [
+    ["1月", 120], ["2月", 200], ["3月", 150], ["4月", 80], ["5月", 270], ["6月", 310],
+  ];
+  let cur = { type: "bar", smooth: false };
+
+  function renderOption() {
+    const typeStr = cur.type === "pie" ? "pie" : cur.type;
+    const extra = cur.type === "line" ? `,\n    smooth: ${cur.smooth}` : "";
+    optJson.innerHTML =
+`{
+  <span class="k">xAxis</span>: { <span class="k">type</span>: "<span class="s">category</span>",
+           <span class="k">data</span>: [<span class="s">"1月"</span>, …, <span class="s">"6月"</span>] },
+  <span class="k">yAxis</span>:  { <span class="k">type</span>: "<span class="s">value</span>" },
+  <span class="k">series</span>: [{
+    <span class="k">type</span>: "<span class="s">${typeStr}</span>"${extra},
+    <span class="k">data</span>: [<span class="n">120</span>, <span class="n">200</span>, <span class="n">150</span>, <span class="n">80</span>, <span class="n">270</span>, <span class="n">310</span>],
+    <span class="k">itemStyle</span>: { <span class="k">color</span>: "<span class="s">#2f6fed</span>" }
+  }]
+}`;
+    drawChart();
+  }
+
+  function drawChart() {
+    optChart.innerHTML = "";
+    const W = 340, H = 260, PL = 40, PB = 30, PT = 30;
+    const vals = DATA.map((d) => d[1]);
+    const max = Math.max(...vals) * 1.15;
+    const y = V.scaleLinear(0, max, H - PB, PT);
+
+    if (cur.type === "pie") {
+      // 环形
+      const total = vals.reduce((a, b) => a + b, 0);
+      let ang = -Math.PI / 2;
+      const cx = 170, cy = 130, r0 = 48, r1 = 92;
+      vals.forEach((v, i) => {
+        const a0 = ang, a1 = ang + (v / total) * Math.PI * 2 - 0.02;
+        ang += (v / total) * Math.PI * 2;
+        const P = (r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+        const [sx, sy] = P(r1, a0), [ex, ey] = P(r1, a1), [ix, iy] = P(r0, a1), [jx, jy] = P(r0, a0);
+        const large = a1 - a0 > Math.PI ? 1 : 0;
+        optChart.appendChild(V.svgEl("path", {
+          d: `M ${sx} ${sy} A ${r1} ${r1} 0 ${large} 1 ${ex} ${ey} L ${ix} ${iy} A ${r0} ${r0} 0 ${large} 0 ${jx} ${jy} Z`,
+          fill: V.palette[i], opacity: .9,
+        }));
+      });
+      const t = V.svgEl("text", { x: cx, y: cy + 5, "text-anchor": "middle", "font-size": 14, fill: "#1e2530", "font-weight": 700, "font-family": "var(--mono)" });
+      t.textContent = total; optChart.appendChild(t);
+      return;
+    }
+
+    // 轴
+    for (let i = 0; i <= 4; i++) {
+      const yy = PT + (H - PB - PT) * (i / 4);
+      optChart.appendChild(V.svgEl("line", { x1: PL, x2: W - 12, y1: yy, y2: yy, stroke: "#e9edf3" }));
+      const t = V.svgEl("text", { x: PL - 6, y: yy + 4, "text-anchor": "end", "font-size": 10, fill: "#8a94a3" });
+      t.textContent = Math.round((max / 4) * (4 - i)); optChart.appendChild(t);
+    }
+    DATA.forEach((d, i) => {
+      const x = PL + i * ((W - PL - 24) / 6) + 4;
+      const t = V.svgEl("text", { x: x + 20, y: H - 10, "text-anchor": "middle", "font-size": 10, fill: "#8a94a3" });
+      t.textContent = d[0]; optChart.appendChild(t);
+    });
+
+    if (cur.type === "bar") {
+      const bw = (W - PL - 24) / 6 - 12;
+      DATA.forEach((d, i) => {
+        const x = PL + i * ((W - PL - 24) / 6) + 6;
+        const r = V.svgEl("rect", { x, y: y(d[1]), width: bw, height: y(0) - y(d[1]), rx: 4, fill: "#2f6fed", opacity: .9 });
+        r.style.transition = "all .5s";
+        optChart.appendChild(r);
+        const t = V.svgEl("text", { x: x + bw / 2, y: y(d[1]) - 5, "text-anchor": "middle", "font-size": 9.5, fill: "#5a6472", "font-family": "var(--mono)" });
+        t.textContent = d[1]; optChart.appendChild(t);
+      });
+    } else {
+      // 折线(带可选平滑)
+      const xs = DATA.map((_, i) => PL + i * ((W - PL - 24) / 6) + 6 + ((W - PL - 24) / 6 - 12) / 2);
+      let d;
+      if (cur.smooth) {
+        // 简易 Catmull-Rom → 贝塞尔
+        const pts = xs.map((x, i) => [x, y(DATA[i][1])]);
+        d = `M ${pts[0][0]},${pts[0][1]}`;
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+          const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+          const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+          d += ` C ${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${p2[0]},${p2[1]}`;
+        }
+      } else {
+        d = "M " + xs.map((x, i) => `${x},${y(DATA[i][1])}`).join(" L ");
+      }
+      optChart.appendChild(V.svgEl("path", { d, fill: "none", stroke: "#2f6fed", "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+      xs.forEach((x, i) => optChart.appendChild(V.svgEl("circle", { cx: x, cy: y(DATA[i][1]), r: 3.5, fill: "#fff", stroke: "#2f6fed", "stroke-width": 2 })));
+    }
+  }
+  document.querySelectorAll(".opt-btn").forEach((b) =>
+    b.addEventListener("click", () => {
+      const o = b.dataset.opt;
+      if (o === "smooth") { cur.smooth = !cur.smooth; cur.type = "line"; }
+      else cur.type = o;
+      renderOption();
+    }));
+  renderOption();
+
+  /* ========== 演示 7.2:决策树 ========== */
+  // 树数据:id, 问题/叶子, 选项 [label, 下一 id]
+  const TREE = {
+    q1: { q: "① 你的数据规模?", opts: [["≤ 1 千个点", "q2"], ["1 千 ~ 10 万", "q4"], ["10 万以上 / 地理 / 3D", "q5"]] },
+    q2: { q: "② 想深挖可视化底层、完全掌控每个像素?", opts: [["是,这是学习目的", "leaf-d3"], ["否,快速交活优先", "q3"]] },
+    q3: { q: "③ 只要标准图表(柱/线/饼/地图)?", opts: [["是", "leaf-echarts"], ["否,想要探索式分析", "leaf-obs"]] },
+    q4: { q: "② 海量散点 / 关系图 / 轨迹为主?", opts: [["是", "leaf-echarts-big"], ["否,常规图表为主", "leaf-plotly"]] },
+    q5: { q: "② 偏地理空间(点、线、面海量叠加)?", opts: [["是", "leaf-deck"], ["否,偏 3D 场景", "leaf-three"]] },
+    "leaf-d3": { leaf: "D3.js", why: "完全控制:比例尺、布局、交互全部亲手实现。学习曲线最陡,但天花板最高——本课程主线。" },
+    "leaf-echarts": { leaf: "Apache ECharts / Chart.js", why: "配置式出图,主题/tooltip/动画内置,中文文档完善,团队协作效率高。" },
+    "leaf-obs": { leaf: "Observable Plot / Vega-Lite", why: "一行一图的研究式语法,改数据即改图,适合数据探索与快速迭代。" },
+    "leaf-echarts-big": { leaf: "ECharts(large 模式)", why: "Canvas 渲染 + 大数据优化,十万点散点带 tooltip 依然流畅。" },
+    "leaf-plotly": { leaf: "Plotly", why: "统计图表全家桶 + 科学计算生态(Python/R 无缝),适合中等规模的快速分析。" },
+    "leaf-deck": { leaf: "deck.gl / Kepler.gl", why: "WebGL 地理渲染,百万级点线面叠加是主场,Kepler 甚至零代码。" },
+    "leaf-three": { leaf: "Three.js / ECharts-GL", why: "真 3D 场景:曲面、流场、建筑信息模型。学习成本高,慎入但值得。" },
+  };
+  // 手工布局坐标(id → [x,y])
+  const POS = {
+    q1: [30, 170], q2: [120, 60], q3: [120, 104], q4: [120, 175], q5: [120, 295],
+    "leaf-d3": [280, 20], "leaf-echarts": [280, 62], "leaf-obs": [280, 104],
+    "leaf-echarts-big": [280, 155], "leaf-plotly": [280, 198],
+    "leaf-deck": [280, 272], "leaf-three": [280, 318],
+  };
+  const EDGES = [];
+  (function edges(n, from) {
+    if (n.opts) n.opts.forEach(([_, to]) => { EDGES.push([from, to]); edges(TREE[to], to); });
+  })(TREE.q1, "q1");
+
+  const dtSvg = document.getElementById("dt-svg");
+  const dtPanel = document.getElementById("dt-panel");
+  let dtState = { cur: "q1", path: [] };
+
+  function dtDraw() {
+    dtSvg.innerHTML = "";
+    const litEdges = new Set();
+    for (let i = 0; i < dtState.path.length; i++) litEdges.add(dtState.path[i] + "→" + (i + 1 < dtState.path.length ? dtState.path[i + 1] : dtState.cur));
+    // 边
+    EDGES.forEach(([a, b]) => {
+      const [ax, ay] = POS[a], [bx, by] = POS[b];
+      const lit = litEdges.has(a + "→" + b);
+      dtSvg.appendChild(V.svgEl("path", {
+        d: `M ${ax + 34} ${ay + 14} C ${ax + 70} ${ay + 14}, ${bx - 40} ${by + 14}, ${bx - 4} ${by + 14}`,
+        fill: "none", stroke: lit ? "#2f6fed" : "#dde3ec", "stroke-width": lit ? 3 : 1.6,
+      }));
+    });
+    // 节点
+    Object.keys(POS).forEach((id) => {
+      const [x, y] = POS[id];
+      const node = TREE[id];
+      const isLeaf = !!node.leaf;
+      const isCur = dtState.cur === id;
+      const onPath = dtState.path.includes(id) || isCur;
+      const g = V.svgEl("g");
+      const box = V.svgEl("rect", {
+        x: isLeaf ? x - 4 : x - 30, y, width: isLeaf ? 88 : 64, height: 28, rx: 8,
+        fill: isCur ? "#2f6fed" : isLeaf ? (onPath ? "#e7f9f0" : "#f4f6f9") : (onPath ? "#e3ecfd" : "#f4f6f9"),
+        stroke: isLeaf && onPath ? "#10b981" : "none",
+      });
+      g.appendChild(box);
+      const t = V.svgEl("text", {
+        x: isLeaf ? x + 40 : x + 1, y: y + 18, "text-anchor": "middle", "font-size": 10,
+        fill: isCur ? "#fff" : isLeaf ? "#0b6a4a" : "#5a6472", "font-weight": isCur || isLeaf ? 700 : 500,
+      });
+      t.textContent = isLeaf ? node.leaf.split(" /")[0] : id.toUpperCase();
+      g.appendChild(t);
+      dtSvg.appendChild(g);
+    });
+  }
+  function dtAsk() {
+    const node = TREE[dtState.cur];
+    if (node.leaf) {
+      dtPanel.innerHTML = `<div class="dt-result">
+        <div style="font-size:12px;color:#1d4fc0;font-weight:600;margin-bottom:4px">🎯 推荐工具</div>
+        <div class="tool">${node.leaf}</div>
+        <p style="font-size:13px;color:var(--text-2);margin-top:8px">${node.why}</p>
+        <button id="dt-restart2" style="margin-top:12px;border:1px solid var(--border);background:#fff;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:13px">↺ 再来一次</button>
+      </div>`;
+      document.getElementById("dt-restart2").addEventListener("click", dtRestart);
+      return;
+    }
+    dtPanel.innerHTML = `<div class="dt-qbox">
+      <h4>${node.q}</h4>
+      <div class="dt-opts">${node.opts.map(([label, to]) =>
+        `<button data-to="${to}">${label}</button>`).join("")}</div>
+      <div style="font-size:11.5px;color:var(--text-3);margin-top:10px">已走过 ${dtState.path.length} 步</div>
+    </div>`;
+    dtPanel.querySelectorAll("button[data-to]").forEach((b) =>
+      b.addEventListener("click", () => {
+        dtState.path.push(dtState.cur);
+        dtState.cur = b.dataset.to;
+        dtDraw(); dtAsk();
+      }));
+  }
+  function dtRestart() { dtState = { cur: "q1", path: [] }; dtDraw(); dtAsk(); }
+  document.getElementById("dt-restart").addEventListener("click", dtRestart);
+  dtRestart();
+
+  /* ========== 演示 7.3:对比表 ========== */
+  const ECO = [
+    { name: "D3.js", tag: "命令式", r: "SVG", up: "★★★★", cu: "★★★★★", big: "★★", sc: "fast:0 custom:1 big:0 geo:0", note: "研究型作品、独创布局、教学" },
+    { name: "Apache ECharts", tag: "声明式", r: "Canvas/SVG", up: "★★", cu: "★★★", big: "★★★★", sc: "fast:1 custom:0 big:1 geo:0", note: "业务报表、监控大屏、中文团队" },
+    { name: "Chart.js", tag: "声明式", r: "Canvas", up: "★", cu: "★★", big: "★★★", sc: "fast:1 custom:0 big:0 geo:0", note: "轻量嵌入、简单标准图" },
+    { name: "Plotly", tag: "声明式", r: "SVG/WebGL", up: "★★", cu: "★★★", big: "★★★", sc: "fast:1 custom:0 big:1 geo:0", note: "科学计算、Python/R 协作" },
+    { name: "Observable Plot", tag: "声明式", r: "SVG", up: "★★", cu: "★★★★", big: "★★", sc: "fast:0 custom:0 big:0 geo:0", note: "数据探索、 notebook 式迭代" },
+    { name: "deck.gl", tag: "命令式", r: "WebGL", up: "★★★★", cu: "★★★★", big: "★★★★★", sc: "fast:0 custom:1 big:1 geo:1", note: "地理空间大数据、百万级叠加" },
+  ];
+  const ecoTbody = document.querySelector("#eco-table tbody");
+  function ecoRender(filter) {
+    ecoTbody.innerHTML = ECO.map((t) => {
+      const rec = filter && t.sc.includes(filter + ":1");
+      return `<tr class="${rec ? "rec" : ""}">
+        <td><b>${t.name}</b>${rec ? ' <span class="pill" style="background:#d5f3e5;color:#0b6a4a">✓ 推荐</span>' : ""}</td>
+        <td>${t.tag}</td><td>${t.r}</td><td>${t.up}</td><td>${t.cu}</td><td>${t.big}</td>
+        <td style="color:var(--text-2)">${t.note}</td></tr>`;
+    }).join("");
+  }
+  document.getElementById("eco-filter").addEventListener("change", (e) => ecoRender(e.target.value));
+  ecoRender("");
+})();
+</script>
+</body>
+</html>

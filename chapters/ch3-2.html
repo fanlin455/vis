@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 8 章 · 专题:表格可视化 — 可视化导论</title>
+<meta name="description" content="学习表格排版、排序、筛选与 Sparkline,让密集数据更容易比较和探索。">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+  table.stu { border-collapse: collapse; font-size: 13.5px; width: 100%; }
+  table.stu th { background: var(--bg-soft); padding: 9px 14px; text-align: left; cursor: pointer; user-select: none; white-space: nowrap; }
+  table.stu th:hover { background: var(--accent-soft); }
+  table.stu th .arr { color: var(--accent); margin-left: 4px; }
+  table.stu td { padding: 9px 14px; border-bottom: 1px solid var(--border); }
+  table.stu tr:hover td { background: #f6f9ff; }
+  .score-bar { display: inline-block; vertical-align: middle; height: 8px; border-radius: 4px; background: #2f6fed; opacity: .85; margin-left: 8px; }
+  table.bad-tbl { border-collapse: collapse; font-size: 13px; width: 100%; }
+  table.bad-tbl td, table.bad-tbl th { border: 2px solid #9aa5b5; padding: 6px 10px; }
+  .bad-note { color: #b91c1c; font-size: 12.5px; }
+  .good-note { color: #0b6a4a; font-size: 12.5px; }
+  .tbl-toolbar { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+  .tbl-toolbar input { border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; font-size: 13.5px; width: 200px; font-family: var(--sans); }
+  .spark-cell { cursor: pointer; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="../index.html"><span class="brand-mark">VIS</span><span>可视化导论</span></a>
+    <nav><a href="../index.html#chapters">全部章节</a></nav>
+  </div>
+</header>
+
+<div class="ch-layout">
+
+  <aside class="toc">
+    <a class="toc-back" href="../index.html">← 返回门户</a>
+    <div class="toc-ch">第 8 章 · 拓展篇</div>
+    <a href="#kp1">8.1 表格设计原则</a>
+    <a href="#kp2">8.2 排序与筛选</a>
+    <a href="#kp3">8.3 迷你图 Sparkline</a>
+  </aside>
+
+  <main>
+    <div class="ch-hero">
+      <span class="kicker">第 8 章 · 拓展篇 · ★★★</span>
+      <h1>专题:表格可视化</h1>
+      <p class="lead">
+        表格常被当作"没法可视化才用的备胎",其实它是<strong>精确阅读的王者</strong>:
+        图表利于比较与发现模式,表格利于查值与核对。
+        而当表格遇上排序、筛选、迷你图,它本身就是一件交互式可视化作品。
+      </p>
+      <div class="ch-tags"><span>表格设计</span><span>排序筛选</span><span>Sparkline</span><span>数据密集型界面</span></div>
+    </div>
+
+    <div class="objectives">
+      <h2>🎯 学习目标</h2>
+      <ul>
+        <li>识别 6 个最常见的表格反模式,能对照修复</li>
+        <li>实现点击表头排序 + 实时搜索过滤</li>
+        <li>把 Sparkline 嵌进单元格,并保证排序时图形跟着行走</li>
+      </ul>
+    </div>
+
+    <!-- ================= KP 8.1 ================= -->
+    <section class="kp" id="kp1">
+      <div class="kp-head"><span class="kp-badge">KP 8.1</span><h2>坏表格 vs 好表格:六个反模式</h2></div>
+      <div class="kp-body">
+        <p>同一份数据,左右两张表,信息获取效率天差地别。常见反模式:
+        </p>
+        <ul>
+          <li><strong>垂直边框全开</strong>:网格线喧宾夺主,数字列无法纵向扫读</li>
+          <li><strong>数字居中对齐</strong>:个位十万位错位,大小比较失能——<strong>数字必须右对齐</strong></li>
+          <li><strong>无数字格式化</strong>:1234567 应显示为 1,234,567;0.156 应显示为 15.6%</li>
+          <li><strong>斑马纹滥用</strong>:高对比条纹干扰扫读,浅色或仅 hover 高亮更佳</li>
+          <li><strong>重复冗余</strong>:每行重复相同类别,应合并单元格或分组行</li>
+          <li><strong>列宽失控</strong>:长文本挤压数字列,关键列应固定宽度</li>
+        </ul>
+        <div class="note">💡 判断标准:读者最快能否<strong>纵向扫一列</strong>比较大小、<strong>横向扫一行</strong>找到记录?表格设计的一切都服务这两条扫读路径。</div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 同一数据,两种命运</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl"><button class="primary" id="tbl-switch">🔁 当前:坏表格(点击切换)</button></div>
+        </div>
+        <div class="demo-body" id="tbl-box"></div>
+        <div class="demo-tip">提示:切换后试着"找出营收最高的一年"和"比较 2019 与 2023 的利润"——两种表格的效率差异亲身体会一次,胜过背诵十条规范。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 8.2 ================= -->
+    <section class="kp" id="kp2">
+      <div class="kp-head"><span class="kp-badge">KP 8.2</span><h2>排序与筛选:表格的原生交互</h2></div>
+      <div class="kp-body">
+        <p>
+          图表的交互靠拖拽刷选,表格的交互靠<strong>排序与筛选</strong>——成本低、用户零学习成本、
+          且与 Excel 心智模型完全一致。实现要点:
+        </p>
+        <ul>
+          <li>点击表头循环<strong>降序 → 升序 → 原序</strong>,箭头即时反馈当前状态</li>
+          <li>搜索框输入即时过滤(<code>includes</code> 即可,中文场景无需分词),并<strong>始终显示"当前 n / 总 m 条"</strong></li>
+          <li>筛选为空时给出友好空态,而不是白屏</li>
+          <li>排序图标加 <code>aria-sort</code>,屏幕阅读器也能感知——可访问性是可视化的底座</li>
+        </ul>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>table-sort.js</div>
+        <button class="copy">复制</button>
+<pre><code>let sortKey = null, sortDir = -1;              // -1 降序,1 升序
+
+function render(rows) {
+  tbody.selectAll("tr").data(rows, d =&gt; d.id)
+    .join("tr")                                // 数据驱动,和图表同源
+    .html(d =&gt; `&lt;td&gt;${d.name}&lt;/td&gt;&lt;td style="text-align:right"&gt;${d.score}&lt;/td&gt;…`);
+
+  th.attr("aria-sort", d =&gt;
+    d.key === sortKey ? (sortDir &lt; 0 ? "descending" : "ascending") : null);
+}
+
+th.on("click", (e, d) =&gt; {                     // 三态循环
+  if (sortKey === d.key &amp;&amp; sortDir === -1) { sortKey = null; sortDir = -1; }   // 回原序
+  else sortDir = (sortKey === d.key) ? -sortDir : -1, sortKey = d.key;
+  render(sort(rows, sortKey, sortDir));
+});
+
+search.on("input", () =&gt;                       // 实时过滤
+  render(rows.filter((r) =&gt; r.name.includes(search.node().value))));</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 成绩册(点表头排序 · 输入即筛选)</h3>
+          <span class="spacer"></span>
+        </div>
+        <div class="demo-body">
+          <div class="tbl-toolbar">
+            <label for="stu-search" class="sr-only">搜索学生姓名</label>
+            <input id="stu-search" placeholder="🔍 搜索姓名…">
+            <label for="stu-grade" class="sr-only">筛选年级</label>
+            <select id="stu-grade" style="border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13.5px">
+              <option value="">全部年级</option><option>大一</option><option>大二</option><option>大三</option>
+            </select>
+            <span style="margin-left:auto;font-size:12.5px;color:var(--text-3)" id="stu-count"></span>
+          </div>
+          <table class="stu" id="stu-table">
+            <caption class="sr-only">学生成绩表，可按姓名、年级或总分排序</caption>
+            <thead><tr>
+              <th scope="col" data-k="name" tabindex="0" role="button">姓名</th><th scope="col" data-k="grade" tabindex="0" role="button">年级</th>
+              <th scope="col" data-k="score" tabindex="0" role="button" style="text-align:right">总分</th>
+              <th scope="col" style="width:38%">总分分布</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="demo-tip">提示:按住"总分"表头点击三次,观察 降序 → 升序 → 原序 的三态循环;再输入名字试试即时过滤。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 8.3 ================= -->
+    <section class="kp" id="kp3">
+      <div class="kp-head"><span class="kp-badge">KP 8.3</span><h2>Sparkline:表格里的微图表</h2></div>
+      <div class="kp-body">
+        <p>
+          Sparkline(迷你图)是 Tufte 提出的"文字大小的图表":一条 80×24 像素的折线,
+          塞进表格单元格里,一列趋势信息就此诞生——
+          <strong>每行既有精确数值,又有 12 个月的趋势形状</strong>,查值与洞察兼得。
+        </p>
+        <ul>
+          <li>迷你图<strong>不要 y 轴</strong>:只看形状,绝对值由旁边的数字列负责</li>
+          <li>同一列的迷你图<strong>共享 y 域</strong>(0 到该列最大值),否则形状不可跨行比较</li>
+          <li>终点(最新值)加一个圆点、涨跌用红绿,一眼锁定"现在"</li>
+          <li>悬停显示逐月数值——微图表也能有完整 tooltip</li>
+        </ul>
+        <div class="note">💡 金融终端(Bloomberg 等)、GitHub 提交热图旁的贡献曲线、Google Analytics 的趋势列,全是这一模式的工业化应用。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>sparkline.js</div>
+        <button class="copy">复制</button>
+<pre><code>function sparkline(values, w, h, yScale) {
+  const pts = values.map((v, i) =&gt;
+    [i * (w / (values.length - 1)), yScale(v)]);   // 共享 yScale,形状可比
+
+  const path = "M " + pts.map(p =&gt; p.join(",")).join(" L ");
+  const last = pts[pts.length - 1];
+  const up = values.at(-1) &gt;= values[0];
+
+  return `&lt;svg width="${w}" height="${h}"&gt;
+    &lt;path d="${path}" stroke="${up ? "#0b6a4a" : "#b91c1c"}"
+          stroke-width="1.6" fill="none"/&gt;
+    &lt;circle cx="${last[0]}" cy="${last[1]}" r="2.4"
+            fill="${up ? "#0b6a4a" : "#b91c1c"}"/&gt;   // 终点 = 现在
+  &lt;/svg&gt;`;
+}
+
+// 关键:整列共享同一个 y 域
+const yScale = d3.scaleLinear()
+  .domain([0, d3.max(allRows, d =&gt; d3.max(d.trend))])
+  .range([h - 3, 3]);</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 基金净值表(悬停迷你图看逐月值 · 表头可排序)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl"><span style="font-size:12px;color:var(--text-3)" id="fund-tip">悬停任一折线查看逐月走势</span></div>
+        </div>
+        <div class="demo-body">
+          <table class="stu" id="fund-table">
+            <caption class="sr-only">基金净值和近十二个月走势，可按基金名称、涨幅或净值排序</caption>
+            <thead><tr>
+              <th scope="col" data-k="name" tabindex="0" role="button">基金</th>
+              <th scope="col" data-k="yoy" tabindex="0" role="button" style="text-align:right">近一年</th>
+              <th scope="col" data-k="last" tabindex="0" role="button" style="text-align:right">最新净值</th>
+              <th scope="col" style="width:44%">近 12 个月走势</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="demo-tip">提示:所有迷你图共用同一 y 域——第一行的"平稳"与第三行的"深 V"是真实可比的形状差异,不是各自的缩放。</div>
+      </div>
+    </section>
+
+    <div class="ch-pager">
+      <a href="ch3-1.html"><span class="dir">← 上一章</span><span class="ttl">第 7 章 · 其他可视化工具与库</span></a>
+      <a class="next" href="ch3-3.html"><span class="dir">下一章 →</span><span class="ttl">第 9 章 · 期末:从数据到发布</span></a>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/main.js"></script>
+<script src="../assets/lesson.js"></script>
+<script>
+(function () {
+  const V = window.Vis;
+
+  /* ========== 演示 8.1:坏表格 vs 好表格 ========== */
+  const FIN = [
+    { year: 2019, rev: 1234567, profit: 98765, share: 31.5 },
+    { year: 2020, rev: 987654, profit: 45678, share: 24.2 },
+    { year: 2021, rev: 2345678, profit: 234567, share: 22.8 },
+    { year: 2022, rev: 3456789, profit: 345678, share: 18.6 },
+    { year: 2023, rev: 4567890, profit: 567890, share: 16.9 },
+  ];
+  const tblBox = document.getElementById("tbl-box");
+  const fmt = (n) => n.toLocaleString("zh-CN");
+  const pct = (x) => (x / 100).toLocaleString("zh-CN", { style: "percent", minimumFractionDigits: 1 });
+
+  function badTable() {
+    tblBox.innerHTML = `
+    <div class="bad-note">❌ 坏表格:全网格线、数字居中、无千分位、重复类别、无对齐策略</div>
+    <table class="bad-tbl" style="margin-top:8px">
+      <caption class="sr-only">不推荐的财务数据表格示例</caption>
+      <tr><th scope="col">年份</th><th scope="col">类别</th><th scope="col">类别</th><th scope="col">营业收入</th><th scope="col">利润</th><th scope="col">份额</th></tr>
+      ${FIN.map((f) => `<tr style="background:${f.year % 2 ? "#fdf3df" : "#f1ecfe"}">
+        <td style="text-align:center">${f.year}年</td><td style="text-align:center">主营业务</td>
+        <td style="text-align:center">主营业务</td><td style="text-align:center">${f.rev}</td>
+        <td style="text-align:center">${f.profit}</td><td style="text-align:center">${f.share}%</td></tr>`).join("")}
+    </table>`;
+  }
+  function goodTable() {
+    const maxRev = Math.max(...FIN.map((f) => f.rev));
+    tblBox.innerHTML = `
+    <div class="good-note">✅ 好表格:横向细线、数字右对齐 + 千分位、份额转百分比、营收附比例条、类别列合并、行 hover</div>
+    <table class="stu" style="margin-top:8px">
+      <caption class="sr-only">优化后的财务数据表格示例</caption>
+      <thead><tr><th scope="col">年份</th><th scope="col">类别</th><th scope="col" style="text-align:right">营业收入(元)</th>
+        <th scope="col" style="text-align:right">利润(元)</th><th scope="col" style="text-align:right">份额</th></tr></thead>
+      <tbody>
+        ${FIN.map((f, i) => `<tr>
+          <td>${f.year}</td>
+          <td>${i === 0 ? '主营业务<span style="color:#8a94a3">(合并 5 行)</span>' : ""}</td>
+          <td style="text-align:right;font-family:var(--mono)">${fmt(f.rev)}<span class="score-bar" style="width:${(f.rev / maxRev) * 90}px"></span></td>
+          <td style="text-align:right;font-family:var(--mono)">${fmt(f.profit)}</td>
+          <td style="text-align:right;font-family:var(--mono)">${pct(f.share)}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table>`;
+  }
+  let tblGood = false;
+  document.getElementById("tbl-switch").addEventListener("click", (e) => {
+    tblGood = !tblGood;
+    e.target.textContent = tblGood ? "🔁 当前:好表格(点击切换)" : "🔁 当前:坏表格(点击切换)";
+    tblGood ? goodTable() : badTable();
+  });
+  badTable();
+
+  /* ========== 演示 8.2:排序筛选成绩册 ========== */
+  const STU = [
+    { id: 1, name: "陈一图", grade: "大一", score: 92 }, { id: 2, name: "王二码", grade: "大二", score: 78 },
+    { id: 3, name: "李三帧", grade: "大一", score: 85 }, { id: 4, name: "赵四轴", grade: "大三", score: 66 },
+    { id: 5, name: "周五格", grade: "大二", score: 95 }, { id: 6, name: "吴六维", grade: "大三", score: 71 },
+    { id: 7, name: "郑七彩", grade: "大一", score: 88 }, { id: 8, name: "孙八度", grade: "大二", score: 59 },
+    { id: 9, name: "周九何", grade: "大三", score: 81 }, { id: 10, name: "林十线", grade: "大一", score: 73 },
+  ];
+  let sKey = null, sDir = -1;
+  const stuTbody = document.querySelector("#stu-table tbody");
+  const stuCount = document.getElementById("stu-count");
+  const maxScore = 100;
+
+  function stuRender() {
+    let rows = STU.filter((r) =>
+      (!q || r.name.includes(q)) && (!g || r.grade === g));
+    if (sKey) {
+      rows = [...rows].sort((a, b) => {
+        const av = a[sKey], bv = b[sKey];
+        return (av > bv ? 1 : av < bv ? -1 : 0) * (sDir === 1 ? 1 : -1);
+      });
+    }
+    stuCount.textContent = `当前 ${rows.length} / ${STU.length} 条`;
+    stuTbody.innerHTML = rows.length
+      ? rows.map((r) => `<tr>
+          <td>${r.name}</td><td>${r.grade}</td>
+          <td style="text-align:right;font-family:var(--mono)">${r.score}<span class="score-bar" style="width:${(r.score / maxScore) * 80}px"></span></td>
+          <td style="color:var(--text-3);font-size:12.5px">${r.score >= 90 ? "🏆 优秀" : r.score >= 75 ? "良好" : r.score >= 60 ? "及格" : "⚠️ 需补考"}</td>
+        </tr>`).join("")
+      : `<tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:24px">没有匹配的记录,换个关键词试试 🔍</td></tr>`;
+    // 表头箭头
+    document.querySelectorAll("#stu-table th[data-k]").forEach((th) => {
+      const on = th.dataset.k === sKey;
+      th.innerHTML = th.textContent.replace(/[▲▼]/g, "").trim() + (on ? `<span class="arr">${sDir === 1 ? "▲" : "▼"}</span>` : "");
+      th.setAttribute("aria-sort", on ? (sDir === 1 ? "ascending" : "descending") : "none");
+    });
+  }
+  let q = "", g = "";
+  document.getElementById("stu-search").addEventListener("input", (e) => { q = e.target.value.trim(); stuRender(); });
+  document.getElementById("stu-grade").addEventListener("change", (e) => { g = e.target.value; stuRender(); });
+  document.querySelectorAll("#stu-table th[data-k]").forEach((th) => {
+    const sort = () => {
+      const k = th.dataset.k;
+      if (sKey === k && sDir === -1) { sKey = null; sDir = -1; }     // 三态循环
+      else { sDir = sKey === k ? -sDir : -1; sKey = k; }
+      stuRender();
+    };
+    th.addEventListener("click", sort);
+    th.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      sort();
+    });
+  });
+  stuRender();
+
+  /* ========== 演示 8.3:基金净值 sparkline ========== */
+  let fSeed = 20;
+  const frnd = () => ((fSeed = (fSeed * 9301 + 49297) % 233280) / 233280);
+  const FUNDS = [
+    { name: "稳健增益 A", yoy: 8.4, trend: Array.from({ length: 12 }, (_, i) => 100 + i * 1.2 + frnd() * 3) },
+    { name: "科创成长 C", yoy: -12.7, trend: Array.from({ length: 12 }, (_, i) => 100 + Math.sin(i / 2) * 18 + (i > 7 ? -20 : 8) + frnd() * 4) },
+    { name: "消费精选 B", yoy: 3.2, trend: Array.from({ length: 12 }, (_, i) => 100 + (i > 4 && i < 9 ? -22 : 0) + i * 1.6 + frnd() * 3) },
+    { name: "全球配置 E", yoy: 15.9, trend: Array.from({ length: 12 }, (_, i) => 100 + i * 2.6 + frnd() * 5) },
+    { name: "均衡蓝筹 D", yoy: 6.1, trend: Array.from({ length: 12 }, (_, i) => 100 + i * 0.9 + frnd() * 2.5) },
+  ];
+  // 共享 y 域
+  const allVals = FUNDS.flatMap((f) => f.trend);
+  const fMin = Math.min(...allVals) - 5, fMax = Math.max(...allVals) + 5;
+  const SW = 240, SH = 30;
+  const fy = V.scaleLinear(fMin, fMax, SH - 3, 3);
+  const fundTbody = document.querySelector("#fund-table tbody");
+  const fundTip = document.getElementById("fund-tip");
+  let fk = null, fd = -1;
+
+  function sparkSVG(f) {
+    const pts = f.trend.map((v, i) => [(i / 11) * SW, fy(v)]);
+    const up = f.trend[11] >= f.trend[0];
+    const color = up ? "#0b6a4a" : "#b91c1c";
+    const d = "M " + pts.map((p) => p.map((x) => x.toFixed(1)).join(",")).join(" L ");
+    return { d, color, last: pts[11], pts, up };
+  }
+  function fundRender() {
+    let rows = [...FUNDS];
+    if (fk) rows.sort((a, b) => {
+      const av = fk === "last" ? a.trend[11] : a[fk];
+      const bv = fk === "last" ? b.trend[11] : b[fk];
+      return (av > bv ? 1 : av < bv ? -1 : 0) * (fd === 1 ? 1 : -1);
+    });
+    fundTbody.innerHTML = rows.map((f) => {
+      const sp = sparkSVG(f);
+      return `<tr>
+        <td>${f.name}</td>
+        <td style="text-align:right;font-family:var(--mono);color:${f.yoy >= 0 ? "#0b6a4a" : "#b91c1c"}">${f.yoy >= 0 ? "+" : ""}${f.yoy}%</td>
+        <td style="text-align:right;font-family:var(--mono)">${f.trend[11].toFixed(2)}</td>
+        <td class="spark-cell">
+          <svg width="${SW}" height="${SH}" data-fund="${f.name}" role="img" aria-label="${f.name}近十二个月净值走势，最新净值 ${f.trend[11].toFixed(2)}" style="max-width:100%">
+            <path d="${sp.d}" stroke="${sp.color}" stroke-width="1.8" fill="none"/>
+            <circle cx="${sp.last[0].toFixed(1)}" cy="${sp.last[1].toFixed(1)}" r="2.6" fill="${sp.color}"/>
+          </svg>
+        </td>
+      </tr>`;
+    }).join("");
+    // 悬停 tooltip(用原生 title 之外的自绘)
+    fundTbody.querySelectorAll("svg[data-fund]").forEach((sv) => {
+      sv.addEventListener("mousemove", (e) => {
+        const f = FUNDS.find((x) => x.name === sv.dataset.fund);
+        const r = sv.getBoundingClientRect();
+        const idx = Math.max(0, Math.min(11, Math.round(((e.clientX - r.left) / r.width) * 11)));
+        fundTip.textContent = `${f.name} · ${idx + 1} 月净值 ${f.trend[idx].toFixed(2)}(${f.trend[idx] >= 100 ? "+" : ""}${(f.trend[idx] - 100).toFixed(2)})`;
+      });
+    });
+    document.querySelectorAll("#fund-table th[data-k]").forEach((th) => {
+      const on = th.dataset.k === fk;
+      th.innerHTML = th.textContent.replace(/[▲▼]/g, "").trim() + (on ? `<span class="arr">${fd === 1 ? "▲" : "▼"}</span>` : "");
+      th.setAttribute("aria-sort", on ? (fd === 1 ? "ascending" : "descending") : "none");
+    });
+  }
+  document.querySelectorAll("#fund-table th[data-k]").forEach((th) => {
+    const sort = () => {
+      const k = th.dataset.k;
+      if (fk === k && fd === -1) { fk = null; fd = -1; }
+      else { fd = fk === k ? -fd : -1; fk = k; }
+      fundRender();
+    };
+    th.addEventListener("click", sort);
+    th.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      sort();
+    });
+  });
+  fundRender();
+})();
+</script>
+</body>
+</html>

@@ -1,167 +1,314 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-page-node-id="m4pFCMW2muq4lcHIPpZoHJ">
-<head data-page-node-id="NyFMiu87l5Kthad13fIfkv">
-  <meta charset="UTF-8" data-page-node-id="1TqncXBXg3OQaqPHE21uKQ" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="ydqMOJNe6fLnLmPYO0BhDM" />
-  <title data-i18n="portal.title">《可视化导论》课程门户</title>
-  <link rel="stylesheet" href="styles.css" data-page-node-id="tKV6RyvSfcYFeP1eMx71WL" />
-  <link rel="stylesheet" href="i18n.css" />
-  <script type="module" src="i18n.js"></script>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《可视化导论》课程门户</title>
+<meta name="description" content="《可视化导论》课程学习门户:9 章、29 个知识点,讲解 · 代码 · 交互演示一体化。">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/lesson.css">
 </head>
-<body data-page-node-id="e0WcMTsv7EcoaJJ4ty82HV">
-  <header class="hero" data-page-node-id="GhGfw0XgPWkXCpTQ4SBQRY">
-    <div class="hero-inner" data-page-node-id="FUUBeC6ETI4BUpc9s2DieS">
-      <p class="hero-tag" data-page-node-id="I97lGc6G0LpicqRkHRNai7">VISUALIZATION · INTRODUCTION</p>
-      <h1 data-page-node-id="6PpFyXQgoD2z2gUvDZoH41" data-i18n="portal.hero.h1">《可视化导论》</h1>
-      <p class="hero-subtitle" data-page-node-id="ccKX3lGvHGhzvCOzBLWVIL" data-i18n="portal.hero.subtitle">从数据到图表：JavaScript + D3.js 实战课程</p>
-      <p class="hero-meta" data-page-node-id="dDQxBMB7svuxFu05ieFnvz" data-i18n-html="portal.hero.meta">中国石油大学（华东）· 授课教师：<a href="https://cinger007.github.io" target="_blank" rel="noopener" class="teacher-link">李昕</a> · 主要参考教材：陈为《可视化导论》</p>
+<body>
+
+<!-- ================= 顶部导航 ================= -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">VIS</span>
+      <span>可视化导论</span>
+    </a>
+    <nav>
+      <a href="#pathmap">学习路径</a>
+      <a href="#chapters">课程章节</a>
+      <a href="#starmap">学习星图</a>
+      <a href="#usage">使用方式</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ================= Hero ================= -->
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <h1>从 <span class="hl">一张图</span> 开始,<br>学会用可视化<span class="hl">讲故事</span></h1>
+      <p class="sub">
+        本课程从网页图片加载讲到 D3、Canvas、ECharts,覆盖可视化核心技能。
+        每个知识点都是「讲解 → 关键代码 → 可交互演示」三段连排——
+        <strong>读一段、看一眼代码、动手玩一下</strong>,当堂消化。
+      </p>
+      <div class="hero-tags">
+        <span>HTML / CSS 基础</span><span>D3.js</span><span>SVG</span><span>Canvas</span>
+        <span>ECharts</span><span>表格可视化</span><span>作品发布</span>
+      </div>
+      <div class="hero-actions">
+        <a class="continue-cta" id="continue-learning" href="chapters/ch1-1.html#kp1">
+          <strong>开始学习 →</strong><small>第 1 章 · 渐进式加载网页图片</small>
+        </a>
+        <a class="star-cta" href="#starmap">
+          <strong>✦ 查看我的学习星图</strong>
+          <small>阅读、演示与答题都会点亮星空</small>
+        </a>
+      </div>
     </div>
-  </header>
+    <div class="hero-stats">
+      <div class="stat-card"><div class="num">9<small> 章</small></div><div class="lab">四个阶段,循序渐进</div></div>
+      <div class="stat-card"><div class="num">29<small> 个知识点</small></div><div class="lab">每个都配关键点解析</div></div>
+      <div class="stat-card"><div class="num">29<small> 个演示</small></div><div class="lab">全部可交互、可调参数</div></div>
+      <div class="stat-card"><div class="num">0<small> 视频 / 外部依赖</small></div><div class="lab">纯静态页面,秒开</div></div>
+    </div>
+  </div>
+</section>
 
-  <nav class="nav" data-page-node-id="46pjaYk1anKFk8sx1CpUfx">
-    <a href="#chapters" data-page-node-id="TIDjB8RVxmO2SVmR0lKHSD" data-i18n="portal.nav.chapters">📚 章节</a>
-    <a href="#howto" data-page-node-id="WAU2lzRUXXisfyKqLQxwYt" data-i18n="portal.nav.howto">▶️ 使用方式</a>
-    <a href="#about" data-page-node-id="jGREv0ddub0C7xuTllzbaI" data-i18n="portal.nav.about">ℹ️ 关于</a>
-  </nav>
-
-  <main data-page-node-id="iORobFXkWFC4abFNB9qXz0">
-    <section id="chapters" class="section" data-page-node-id="1hKqJFZdR4ihGy8rmleJPj">
-      <h2 data-page-node-id="ATcERZXUJHy0RVHgveZCzD" data-i18n="portal.tagline" data-i18n="portal.tagline">📚 课程章节</h2>
-      <p class="section-lead" data-page-node-id="0Cl1OHTkthNXbB9CNGeL1F" data-i18n="portal.intro">点击任一卡片进入该章节，每章节含 3 个 tab：📖 讲解 / ⌨️ 关键代码 / ▶️ 演示。</p>
-
-      <div class="cards" data-page-node-id="x7u5knwRvuBVwKLjCyOpLz">
-        <!-- 第 1 章：数据 -->
-        <a class="card available" href="lesson-01/" data-page-node-id="DCarYQHFiFOSrCjSSYz9bo">
-          <div class="card-status" data-page-node-id="p9JcMewhw0QDyoBdgZKA1n" data-i18n="common.live" data-i18n="common.live">✅ 已上线</div>
-          <div class="card-num" data-page-node-id="gEplSSLGCzYaMqP6FCmLIv" data-i18n="card-01.num" data-i18n="card-01.num" data-i18n="card-01.num">第 1 章</div>
-          <h3 data-page-node-id="fX5dFABb54NcIyjcUEklZX" data-i18n="card-01.title">数据</h3>
-          <p class="card-source" data-page-node-id="gJxtRkcQTs6OoEEBAiFCcE"><span data-i18n="common.maps-to"><span data-i18n="common.maps-to">对应你的文档：</span></span><strong data-page-node-id="ZXbH2MCgqDdB3dPWtTQtlL">3. 数据</strong></p>
-          <p class="card-desc" data-page-node-id="W9YltLLKTAxMSOrTYh3FVY" data-i18n="card-01.desc">从 DeepSeek 合成新生数据出发，展开数据生成、DIKW、Stevens 测量尺度、Mackinlay 视觉通道、D3 数据变换与 Data-Join 三态。</p>
-          <ul class="card-tags" data-page-node-id="8yQgsskCl0paFupJlVYvny">
-            <li data-page-node-id="XAg9GQV3aJXF9Cq8z1Ryj2">DIKW 金字塔</li>
-            <li data-page-node-id="kmC2QP6fOySDAFvR7Sb7B7">Stevens 4 尺度</li>
-            <li data-page-node-id="2n5t5AK8GpF60vERjmRkfB">8 个 D3 变换函数</li>
-            <li data-page-node-id="G9zCVNEOuqBUluvErBFMwy">Selection 三态</li>
-          </ul>
-          <div class="card-cta" data-page-node-id="JssS7vxI7bgXBRjuHzbBI1" data-i18n="common.enter" data-i18n="common.enter">进入章节 →</div>
+<!-- ================= 学习路径图 ================= -->
+<section class="container" id="pathmap">
+  <div class="section-title">
+    <h2>学习路径</h2><span class="en">Learning Path</span>
+  </div>
+  <div class="pathmap-wrap">
+    <div class="pathmap-title">点击任一节点进入章节 —— 建议按箭头方向顺序学习</div>
+    <svg viewBox="0 0 780 360" width="100%" height="auto" role="group" aria-labelledby="pathmap-svg-title pathmap-svg-desc">
+      <title id="pathmap-svg-title">课程学习路径图</title>
+      <desc id="pathmap-svg-desc">课程按基础篇、图表篇、交互篇和拓展篇依次学习，共九章。上方为前三个阶段，下方为包含第七至第九章的拓展篇。</desc>
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#b6c2d6"/>
+        </marker>
+      </defs>
+      <!-- 学习顺序箭头:前三阶段纵向学习,完成后回转进入底部拓展篇 -->
+      <g stroke="#b6c2d6" stroke-width="2" stroke-dasharray="6 5" fill="none">
+        <path d="M135,114 L135,124" marker-end="url(#arr)"/>
+        <path d="M240,150 C260,150 265,90 282,90" marker-end="url(#arr)"/>
+        <path d="M390,114 L390,124" marker-end="url(#arr)"/>
+        <path d="M495,150 C515,150 520,90 537,90" marker-end="url(#arr)"/>
+        <path d="M645,114 L645,124" marker-end="url(#arr)"/>
+        <path d="M645,174 L645,188 C645,198 630,202 614,202 L160,202 C144,202 135,212 135,241" marker-end="url(#arr)"/>
+        <path d="M240,268 L282,268" marker-end="url(#arr)"/>
+        <path d="M495,268 L537,268" marker-end="url(#arr)"/>
+      </g>
+      <!-- 阶段一:基础篇 -->
+      <g font-family="inherit">
+        <text x="135" y="34" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6fed">基础篇</text>
+        <text x="135" y="50" text-anchor="middle" font-size="10.5" fill="#697586">认识网页与图形</text>
+        <a href="chapters/ch1-1.html" aria-label="第 1 章：渐进式加载图片">
+          <rect x="30" y="66" width="210" height="48" rx="10" fill="#e3ecfd" stroke="#c9d8f5"/>
+          <circle cx="52" cy="90" r="11" fill="#2f6fed"/><text x="52" y="94" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">1</text>
+          <text x="70" y="86" font-size="12.5" font-weight="600" fill="#1e2530">渐进式加载图片</text>
+          <text x="70" y="102" font-size="10.5" fill="#5a6472">性能 · 骨架屏 · 懒加载</text>
         </a>
-
-        <!-- 第 2 章：流程 -->
-        <a class="card available" href="lesson-02/">
-          <div class="card-status" data-i18n="common.live" data-i18n="common.live">✅ 已上线</div>
-          <div class="card-num" data-i18n="card-02.num" data-i18n="card-02.num">第 2 章</div>
-          <h3 data-i18n="card-02.title">数据可视化流程</h3>
-          <p class="card-source"><span data-i18n="common.maps-to"><span data-i18n="common.maps-to">对应你的文档：</span></span><strong>4. 数据可视化流程</strong></p>
-          <p class="card-desc" data-i18n="card-02.desc">Card 数据流模型、新生数据 → 分类树 → 树形列表的完整链路，Reingold-Tilford 布局、DOM 事件机制。</p>
-          <ul class="card-tags">
-            <li>Card 模型</li>
-            <li>d3.rollup</li>
-            <li>Reingold-Tilford</li>
-            <li>事件委托</li>
-          </ul>
-          <div class="card-cta" data-i18n="common.enter" data-i18n="common.enter">进入章节 →</div>
+        <a href="chapters/ch1-2.html" aria-label="第 2 章：D3 与 SVG 入门">
+          <rect x="30" y="126" width="210" height="48" rx="10" fill="#e3ecfd" stroke="#c9d8f5"/>
+          <circle cx="52" cy="150" r="11" fill="#2f6fed"/><text x="52" y="154" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">2</text>
+          <text x="70" y="146" font-size="12.5" font-weight="600" fill="#1e2530">D3 与 SVG 入门</text>
+          <text x="70" y="162" font-size="10.5" fill="#5a6472">选择集 · 数据绑定</text>
         </a>
-
-        <!-- 第 3 章：色彩专题 -->
-        <a href="lesson-03/" class="card available">
-          <div class="card-status" data-i18n="common.live" data-i18n="common.live">✅ 已上线</div>
-          <div class="card-num" data-i18n="card-03.num" data-i18n="card-03.num">第 3 章</div>
-          <h3 data-i18n="card-03.title">色彩专题</h3>
-          <p class="card-source" data-i18n="portal.cards.source-prefix"><span data-i18n="portal.cards.source-prefix">独立专题：</span><strong data-i18n="portal.cards.color-bold">颜色是可视化基础</strong></p>
-          <p class="card-desc" data-i18n="card-03.desc">颜色模型 + colormap + Lab 色域 + 5 大色系 + 经典科研配色 + 对错案例 + <strong>鲜艳+低饱和哲学生成器</strong> + CVD 论文图测。8 小节，配色一站式。</p>
-          <ul class="card-tags">
-            <li>4 颜色空间 + CVD</li>
-            <li>Wong / Paul Tol</li>
-            <li>5 大色系规则</li>
-            <li>鲜艳+低饱和</li>
-            <li>CVD 论文图测</li>
-          </ul>
-          <div class="card-cta" data-i18n="portal.cta.enter3">进入专题 →</div>
+      </g>
+      <!-- 阶段二:图表篇 -->
+      <g>
+        <text x="390" y="34" text-anchor="middle" font-size="13" font-weight="700" fill="#0ea5a5">图表篇</text>
+        <text x="390" y="50" text-anchor="middle" font-size="10.5" fill="#697586">画出第一张图</text>
+        <a href="chapters/ch1-3.html" aria-label="第 3 章：D3 常用图表">
+          <rect x="285" y="66" width="210" height="48" rx="10" fill="#e0f7f7" stroke="#b8e8e8"/>
+          <circle cx="307" cy="90" r="11" fill="#0ea5a5"/><text x="307" y="94" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">3</text>
+          <text x="325" y="86" font-size="12.5" font-weight="600" fill="#1e2530">D3 常用图表</text>
+          <text x="325" y="102" font-size="10.5" fill="#5a6472">柱 · 折线 · 散点 · 饼</text>
         </a>
-
-        <!-- 第 4 章：低维数据可视化 -->
-        <a href="lesson-04/" class="card available">
-          <div class="card-status" data-i18n="common.live" data-i18n="common.live">✅ 已上线</div>
-          <div class="card-num" data-i18n="card-04.num" data-i18n="card-04.num">第 4 章</div>
-          <h3 data-i18n="card-04.title">低维数据可视化</h3>
-          <p class="card-source"><span data-i18n="common.maps-to"><span data-i18n="common.maps-to">对应你的文档：</span></span><strong>5. 低维数据可视化</strong></p>
-          <p class="card-desc" data-i18n="card-04.desc">Crime 数据坐标变换、10 种曲线拟合、Cleveland 45° 倾角、Marching Squares 等值线，共 5 小节。</p>
-          <ul class="card-tags">
-            <li>三层坐标变换</li>
-            <li>10 种曲线</li>
-            <li>Cleveland 45°</li>
-            <li>Marching Squares</li>
-          </ul>
-          <div class="card-cta" data-i18n="common.enter" data-i18n="common.enter">进入章节 →</div>
+        <a href="chapters/ch2-1.html" aria-label="第 4 章：Canvas 绘图基础">
+          <rect x="285" y="126" width="210" height="48" rx="10" fill="#e0f7f7" stroke="#b8e8e8"/>
+          <circle cx="307" cy="150" r="11" fill="#0ea5a5"/><text x="307" y="154" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">4</text>
+          <text x="325" y="146" font-size="12.5" font-weight="600" fill="#1e2530">Canvas 绘图基础</text>
+          <text x="325" y="162" font-size="10.5" fill="#5a6472">位图 · 动画循环</text>
         </a>
-
-        <!-- 第 5 章：时序数据可视化 -->
-        <a href="lesson-05/" class="card available">
-          <div class="card-status" data-i18n="common.live" data-i18n="common.live">✅ 已上线</div>
-          <div class="card-num" data-i18n="card-05.num" data-i18n="card-05.num">第 5 章</div>
-          <h3 data-i18n="card-05.title">时序数据可视化</h3>
-          <p class="card-source"><span data-i18n="common.maps-to"><span data-i18n="common.maps-to">对应你的文档：</span></span><strong>6. 时序数据可视化</strong></p>
-          <p class="card-desc" data-i18n="card-05.desc">5 个时间属性、法国人名时间序列、van Wijk 日历热图、阿基米德螺旋日历、Storyline 故事线（《侏罗纪公园》案例）。</p>
-          <ul class="card-tags">
-            <li>时间分解</li>
-            <li>日历 colormap</li>
-            <li>极坐标变换</li>
-            <li>Storygraph</li>
-          </ul>
-          <div class="card-cta" data-i18n="common.enter" data-i18n="common.enter">进入章节 →</div>
+      </g>
+      <!-- 阶段三:交互篇 -->
+      <g>
+        <text x="645" y="34" text-anchor="middle" font-size="13" font-weight="700" fill="#f59e0b">交互篇</text>
+        <text x="645" y="50" text-anchor="middle" font-size="10.5" fill="#697586">让图“活”起来</text>
+        <a href="chapters/ch2-2.html" aria-label="第 5 章：交互与动画">
+          <rect x="540" y="66" width="210" height="48" rx="10" fill="#fdf3df" stroke="#f3ddb0"/>
+          <circle cx="562" cy="90" r="11" fill="#f59e0b"/><text x="562" y="94" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">5</text>
+          <text x="580" y="86" font-size="12.5" font-weight="600" fill="#1e2530">交互与动画</text>
+          <text x="580" y="102" font-size="10.5" fill="#5a6472">过渡 · 拖拽 · 刷选</text>
         </a>
+        <a href="chapters/ch2-3.html" aria-label="第 6 章：D3 可视化实践">
+          <rect x="540" y="126" width="210" height="48" rx="10" fill="#fdf3df" stroke="#f3ddb0"/>
+          <circle cx="562" cy="150" r="11" fill="#f59e0b"/><text x="562" y="154" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">6</text>
+          <text x="580" y="146" font-size="12.5" font-weight="600" fill="#1e2530">D3 可视化实践</text>
+          <text x="580" y="162" font-size="10.5" fill="#5a6472">数据 → 布局 → 作品</text>
+        </a>
+      </g>
+      <!-- 阶段四:拓展篇,横向三章避免单列多出一行 -->
+      <g>
+        <text x="390" y="220" text-anchor="middle" font-size="13" font-weight="700" fill="#8b5cf6">拓展篇</text>
+        <text x="390" y="235" text-anchor="middle" font-size="10.5" fill="#697586">工具生态 · 专题深化 · 完整作品</text>
+        <a href="chapters/ch3-1.html" aria-label="第 7 章：其他工具与库">
+          <rect x="30" y="244" width="210" height="48" rx="10" fill="#f1ecfe" stroke="#d9cdfa"/>
+          <circle cx="52" cy="268" r="11" fill="#8b5cf6"/><text x="52" y="272" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">7</text>
+          <text x="70" y="264" font-size="12.5" font-weight="600" fill="#1e2530">其他工具与库</text>
+          <text x="70" y="280" font-size="10.5" fill="#5a6472">ECharts · 选型对比</text>
+        </a>
+        <a href="chapters/ch3-2.html" aria-label="第 8 章：专题，表格可视化">
+          <rect x="285" y="244" width="210" height="48" rx="10" fill="#f1ecfe" stroke="#d9cdfa"/>
+          <circle cx="307" cy="268" r="11" fill="#8b5cf6"/><text x="307" y="272" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">8</text>
+          <text x="325" y="264" font-size="12.5" font-weight="600" fill="#1e2530">专题:表格可视化</text>
+          <text x="325" y="280" font-size="10.5" fill="#5a6472">排序 · 筛选 · 迷你图</text>
+        </a>
+        <a href="chapters/ch3-3.html" aria-label="第 9 章：期末，从数据到发布">
+          <rect x="540" y="244" width="210" height="48" rx="10" fill="#f1ecfe" stroke="#d9cdfa"/>
+          <circle cx="562" cy="268" r="11" fill="#8b5cf6"/><text x="562" y="272" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">9</text>
+          <text x="580" y="264" font-size="12.5" font-weight="600" fill="#1e2530">期末:从数据到发布</text>
+          <text x="580" y="280" font-size="10.5" fill="#5a6472">完整流程 · 上线作品</text>
+        </a>
+      </g>
+      <!-- 底部说明 -->
+      <g>
+        <text x="390" y="330" text-anchor="middle" font-size="11" fill="#697586">每章学习时长约 1–2 周 · 章内小节可任意跳转 · 演示支持单独打开</text>
+        <path d="M60,344 L720,344" stroke="#e3e7ee" stroke-width="1"/>
+      </g>
+    </svg>
+  </div>
+</section>
 
+<!-- ================= 课程章节 ================= -->
+<section class="container" id="chapters">
+  <div class="section-title">
+    <h2>课程章节</h2><span class="en">Chapters</span>
+  </div>
+  <div class="chapters-grid">
+    <a class="ch-card" href="chapters/ch1-1.html" style="--stage-color:#2f6fed">
+      <div class="ch-head"><span class="ch-num">01</span><h3>渐进式加载网页图片</h3></div>
+      <p class="desc">为什么有的图片“先模糊后清晰”?从渐进式渲染、骨架屏到懒加载,理解网页呈现性能的三板斧。</p>
+      <div class="ch-meta"><span class="tag">HTML 基础</span><span class="tag">性能优化</span><span class="diff">难度 <b>★☆☆</b></span></div>
+    </a>
+    <a class="ch-card" href="chapters/ch1-2.html" style="--stage-color:#2f6fed">
+      <div class="ch-head"><span class="ch-num">02</span><h3>D3.js 入门与 SVG 基础</h3></div>
+      <p class="desc">SVG 是网页上一切矢量图形的基石;D3 的「选择集 + 数据绑定」思想,是数据驱动文档的起点。</p>
+      <div class="ch-meta"><span class="tag">SVG</span><span class="tag">D3</span><span class="diff">难度 <b>★★☆</b></span></div>
+    </a>
+    <a class="ch-card" href="chapters/ch1-3.html" style="--stage-color:#0ea5a5">
+      <div class="ch-head"><span class="ch-num">03</span><h3>D3.js 常用图表</h3></div>
+      <p class="desc">柱状图、折线图、散点图、饼图——四大金刚的适用场景与手写要领,一张图选错类型,再多美化也白搭。</p>
+      <div class="ch-meta"><span class="tag">D3</span><span class="tag">图表语法</span><span class="diff">难度 <b>★★☆</b></span></div>
+    </a>
+    <a class="ch-card" href="chapters/ch2-1.html" style="--stage-color:#0ea5a5">
+      <div class="ch-head"><span class="ch-num">04</span><h3>Canvas 绘图基础</h3></div>
+      <p class="desc">SVG 管几千个元素就吃力了。Canvas 用“画笔”模式逐像素绘制,是大数据量可视化与动画的发动机。</p>
+      <div class="ch-meta"><span class="tag">Canvas</span><span class="tag">动画</span><span class="diff">难度 <b>★★☆</b></span></div>
+    </a>
+    <a class="ch-card" href="chapters/ch2-2.html" style="--stage-color:#f59e0b">
+      <div class="ch-head"><span class="ch-num">05</span><h3>交互进阶与动画</h3></div>
+      <p class="desc">transition 过渡、拖拽、刷选联动——交互不是炫技,是让用户“提问—回答”的对话过程。</p>
+      <div class="ch-meta"><span class="tag">D3</span><span class="tag">交互设计</span><span class="diff">难度 <b>★★★</b></span></div>
+    </a>
+    <a class="ch-card" href="chapters/ch2-3.html" style="--stage-color:#f59e0b">
+      <div class="ch-head"><span class="ch-num">06</span><h3>D3 可视化实践</h3></div>
+      <p class="desc">从一份原始 CSV 到可交互作品:数据清洗、布局选择、视图组装的完整流水线。</p>
+      <div class="ch-meta"><span class="tag">D3</span><span class="tag">综合实践</span><span class="diff">难度 <b>★★★★</b></span></div>
+    </a>
+    <a class="ch-card" href="chapters/ch3-1.html" style="--stage-color:#8b5cf6">
+      <div class="ch-head"><span class="ch-num">07</span><h3>其他可视化工具与库</h3></div>
+      <p class="desc">ECharts、Plotly、Observable……工具没有最好只有最合适。一份选型决策树,帮你按场景挑工具。</p>
+      <div class="ch-meta"><span class="tag">ECharts</span><span class="tag">工具选型</span><span class="diff">难度 <b>★★☆</b></span></div>
+    </a>
+    <a class="ch-card" href="chapters/ch3-2.html" style="--stage-color:#8b5cf6">
+      <div class="ch-head"><span class="ch-num">08</span><h3>专题:表格可视化</h3></div>
+      <p class="desc">表格不是“没法可视化才用的备胎”。排序、筛选、迷你图,让密集数据也能一眼看出模式。</p>
+      <div class="ch-meta"><span class="tag">表格</span><span class="tag">Sparkline</span><span class="diff">难度 <b>★★★</b></span></div>
+    </a>
+    <a class="ch-card" href="chapters/ch3-3.html" style="--stage-color:#8b5cf6">
+      <div class="ch-head"><span class="ch-num">09</span><h3>期末:从数据到发布</h3></div>
+      <p class="desc">把课程所学攒成一件作品:选题、数据处理、页面搭建、GitHub Pages 发布与文档撰写的全流程。</p>
+      <div class="ch-meta"><span class="tag">综合实践</span><span class="tag">发布</span><span class="diff">难度 <b>★★★★</b></span></div>
+    </a>
+  </div>
+</section>
+
+<!-- ================= 使用方式 ================= -->
+<section class="container" id="usage">
+  <div class="section-title">
+    <h2>使用方式</h2><span class="en">How to Use</span>
+  </div>
+  <div class="usage-grid">
+    <div class="usage-card">
+      <div class="ico">🎓</div>
+      <h3>课堂讲解</h3>
+      <p>章节页点「进入课堂模式」,即可用翻页笔逐知识点推进;按 <code>N</code> 打开当前小节的教师提词。</p>
+    </div>
+    <div class="usage-card">
+      <div class="ico">📖</div>
+      <h3>学生自学</h3>
+      <p>按学习路径顺序过完每个「关键点」:先读为什么,再看怎么写,最后在演示里调参数验证理解。</p>
+    </div>
+    <div class="usage-card">
+      <div class="ico">🖥️</div>
+      <h3>课堂投屏</h3>
+      <p><code>F11</code> 全屏后,课堂工具箱提供画笔、白板、激光笔、随机点名、计时与三档字号。</p>
+    </div>
+    <div class="usage-card">
+      <div class="ico">🔁</div>
+      <h3>课后复习</h3>
+      <p>每个知识点都有独立锚点链接,点击左侧目录即可复制定位;代码块支持一键复制到本地运行。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 学习星图 ================= -->
+<section class="container" id="starmap">
+  <div class="section-title">
+    <h2>学习星图</h2><span class="en">Your Star Map</span>
+  </div>
+  <p class="starmap-lead">
+    这门课的最后一件展品,是观看者自己——你读过的每一节、玩过的每个演示、答对的每道题,
+    都被画进了这片星空。<strong>9 个星座 = 9 章,29 颗星 = 29 个知识点</strong>;
+    星越亮,掌握越深。悬停查看状态,点击直达原知识点。
+  </p>
+  <div class="star-main">
+    <div class="sky-wrap" id="st-skywrap">
+      <svg id="st-sky" viewBox="0 0 920 620" role="img" aria-label="学习进度星座图"></svg>
+      <div class="star-tip" id="st-tip"></div>
+      <div class="dawn-banner" id="st-dawn">🎓 黎明已至 —— 29 颗星全部点亮,这门课的最后一幅图是你自己</div>
+    </div>
+    <aside class="st-report">
+      <h3>📡 观测报告</h3>
+      <div class="greet" id="st-greet"></div>
+      <div class="rp-big">
+        <div class="n"><span id="st-lit">0</span><small> / 29 颗星已点亮</small></div>
+        <div class="rp-bar"><i id="st-bar"></i></div>
       </div>
-    </section>
-
-    <section id="howto" class="section" data-page-node-id="64yk0DBNHEq2iMB9yRtzCb">
-      <h2 data-page-node-id="XvkmtxSVxnKJUTjzUe2Dce">▶️ 使用方式</h2>
-      <div class="howto-grid" data-page-node-id="cojdiXSRBNTdp56gS6FmBx">
-        <div class="howto-card" data-page-node-id="Wsgba7MBGb1yReC0zL0lMJ">
-          <h3 data-page-node-id="jjJidP9Jcnu7hXhVmHCypu" data-i18n="portal.usage.classroom.title" data-i18n="portal.usage.classroom.title">🎓 课堂讲解</h3>
-          <p data-page-node-id="Hh7iVNa01hVGoyEQxB5GxB" data-i18n="portal.usage.classroom.desc">打开任一章节后，左侧选小节，顶部切换 <strong data-page-node-id="3Ti4uJxRwln8LqTJsbYNOa">讲解 / 代码 / 演示</strong> 三个 tab，<strong data-page-node-id="8UpvqMzKYdXbcGUETc5NXo">一边讲解、一边实时运行</strong>。</p>
-        </div>
-        <div class="howto-card" data-page-node-id="9hvAJxzFlb2HWMiDsxPXDh">
-          <h3 data-page-node-id="rQ8i7Xd9Ue4dvP6pPFOz92" data-i18n="portal.usage.student.title" data-i18n="portal.usage.student.title">📖 学生自学</h3>
-          <p data-page-node-id="2ZTxSoLbCXQsLqSDJlMUSL" data-i18n="portal.usage.student.desc">按章节顺序过完所有 <strong data-page-node-id="pvlqcJQyUNHiJ0NFcIdHtm">⭐ 关键点</strong>，每个关键点配有「为什么这么写」+「有什么坑」段落。</p>
-        </div>
-        <div class="howto-card" data-page-node-id="M7z7BGrXl0AVkfCbVeF1Tm">
-          <h3 data-page-node-id="n3YFzoisHYF00VNcjx9zYu" data-i18n="portal.usage.teacher.title" data-i18n="portal.usage.teacher.title">💻 教师备课时</h3>
-          <p data-page-node-id="URAlOL2wTdVluoVIsQZEfe" data-i18n="portal.usage.teacher.desc">每个章节有 1 套独立的 <code data-page-node-id="jSVYKBHOpqcOM2WYjjPHEp">demo/</code> 子目录，可以单独跑、单独改、单独打包给学生。</p>
-        </div>
-        <div class="howto-card" data-page-node-id="9E2QWvyf76CriGP2LtiGOZ">
-          <h3 data-page-node-id="ApJtIdLQFhCHZDE9o8QLYU" data-i18n="portal.usage.lan.title" data-i18n="portal.usage.lan.title">📶 局域网使用</h3>
-          <p data-page-node-id="84kdcq5HbWdLz7cieSHOQR" data-i18n="portal.usage.lan.desc">若公网不通，可在本机跑 <code data-page-node-id="qGc4uouWgBwZv7G91JuCXi">python -m http.server 8080</code>，学生连同一 WiFi 即可访问。</p>
-        </div>
+      <div id="st-rows"></div>
+      <div class="st-actions">
+        <button id="st-card" type="button">🖼 生成星图卡片</button>
+        <button id="st-reset" type="button" class="ghost">重置</button>
       </div>
-    </section>
+      <p class="privacy">🔒 以上数据只写在你这台浏览器的 localStorage 里,不产生任何网络请求——
+        正如第 9 章所说:发布之前,先想清楚数据去了哪里。</p>
+    </aside>
+  </div>
+  <ul class="st-legend">
+    <li><b>亮度与大小</b>:四级编码掌握程度(未读 → 已读 → 动手 → 答对)<span class="ref">→ 第 3 章 · 视觉通道的选择</span></li>
+    <li><b>彩色光环</b>:玩过这个知识点的演示,直接操作记得牢<span class="ref">→ 第 5 章 · 交互的意义</span></li>
+    <li><b>✦ 金色十字 / 红色虚线环</b>:随堂一问答对 / 答错待重做<span class="ref">→ 第 8 章 · 状态要一眼可辨</span></li>
+    <li><b>连接线</b>:星座内是章节脉络,星座间虚线是还没走完的路,走过变亮<span class="ref">→ 第 9 章 · 工作流有先后</span></li>
+    <li><b>悬停 / 点击</b>:tooltip 与下钻直达,最基本的两组交互<span class="ref">→ 第 3 章 / 第 5 章</span></li>
+    <li><b>右侧报告</b>:px 与秒的原始数据经换算才可读,单位转换也是编码<span class="ref">→ 第 6 章 · 数据清洗</span></li>
+  </ul>
+</section>
 
-    <section id="about" class="section" data-page-node-id="OqSk18LDnzyO9oPCUHtagx">
-      <h2 data-page-node-id="Ta1C6MopIX5ouEBEIt0eUI">ℹ️ 关于本课程</h2>
-      <div class="about" data-page-node-id="cXUlwuNC3Wmfal8XO6hjqb">
-        <div class="about-item" data-page-node-id="6jky2o1LSDnYdO8G8Ri3fM">
-          <h4 data-page-node-id="eRsR8msIg5jhrZBkAMPMVj" data-i18n="portal.about.theory" data-i18n="portal.about.theory">📖 理论来源</h4>
-          <p data-page-node-id="jqfFFQ1k5xLMLHeRgkJZhL" data-i18n="portal.about.theory.desc">陈为《可视化导论》、Mackinlay 1986、Stevens 1946、Cleveland 1984、Bostock D3 官方文档、Card 1999 数据流模型。</p>
-        </div>
-        <div class="about-item" data-page-node-id="2SxcnwvbFRblLa2GHSQlka">
-          <h4 data-page-node-id="eEg0KwI2evtu3BKGGmyLzI" data-i18n="portal.about.principle" data-i18n="portal.about.principle">🎯 设计原则</h4>
-          <p data-page-node-id="985X8BvYBwOBMCHUDiXydj" data-i18n="portal.about.principle.desc"><strong data-page-node-id="8aKJFcxxDkxStG2Zv2uRWS">案例为中心</strong>（不是理论为中心）。每个知识点都嵌入到用户的实践案例里，配 ⭐ 关键点解释 + 可运行演示。</p>
-        </div>
-        <div class="about-item" data-page-node-id="hj0E5OhhPIXgAuhEOj0Uv3">
-          <h4 data-page-node-id="r3LNSIU2EkLcB9MR9BOAQQ" data-i18n="portal.about.stack" data-i18n="portal.about.stack">🛠️ 技术栈</h4>
-          <p data-page-node-id="jaOruUD2mRDHzNN60WLowc" data-i18n="portal.about.stack.desc">零依赖：纯 HTML + CSS + ES modules + D3.js v7 (CDN)。本地一条命令 <code data-page-node-id="8eTwSdhaf6IQ8OUgXgvqAF">python -m http.server</code> 启动，无需 npm。</p>
-        </div>
-        <div class="about-item" data-page-node-id="NAZCDGDl8lB247GxmywQ9z">
-          <h4 data-page-node-id="0EQAwBXZphBziOkUOETKoH" data-i18n="portal.about.data" data-i18n="portal.about.data">📦 数据集</h4>
-          <p data-page-node-id="iAaYt3JpFWbEtPHNARazX3" data-i18n="portal.about.data.desc">新生数据 CSV 与 Crime 数据等都已打包进 <code data-page-node-id="rdAZYFXdCBF7wCpaXQesD5">data/</code> 目录，浏览器 fetch 加载，离线可用。</p>
-        </div>
-      </div>
-    </section>
-  </main>
+<!-- ================= 课程留言板 ================= -->
+<section class="container" id="wall">
+  <div class="section-title">
+    <h2>课程留言板</h2><span class="en">Class Wall</span>
+  </div>
+  <div id="home-wall"></div>
+</section>
 
-  <footer data-page-node-id="EH6rxpBnR8fbmXeo8pKFlc">
-    <p data-page-node-id="A0tvzxVbe9cyG59uFVXL8X" data-i18n-html="footer.copyright">© 2026 《可视化导论》课程 · 中国石油大学（华东）· 授课教师：<a href="https://cinger007.github.io" target="_blank" rel="noopener" class="teacher-link">李昕</a> · 主要参考教材：陈为《可视化导论》</p>
-    <p class="footer-meta" data-page-node-id="blBkjOWrflNEAHUB1cL84l" data-i18n="footer.meta">零依赖 · D3.js v7 · 部署于 WorkBuddy Sites</p>
-  </footer>
+<footer>
+  <p>《可视化导论》课程门户 · 重构版 v2.2 · 纯静态实现,无视频、无外部依赖,存储友好</p>
+  <p style="margin-top:4px"><a href="https://cinger007.github.io/vis/">原版门户</a> · 原内容重新组织为「讲解-代码-演示」一体化页面</p>
+</footer>
+
+<script src="assets/main.js"></script>
+<script src="assets/lesson.js"></script>
+<script src="assets/starmap.js"></script>
 </body>
 </html>

@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 3 章 · D3.js 常用图表 — 可视化导论</title>
+<meta name="description" content="通过交互演示学习柱状图、折线图、散点图和饼图的选择与实现。">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+  .bar-rect { fill: #2f6fed; rx: 5px; transition: x .5s cubic-bezier(.4,0,.2,1), y .5s, height .5s, fill .2s; cursor: pointer; }
+  .bar-rect:hover { fill: #1d4fc0; }
+  .chart-tip { position: absolute; pointer-events: none; background: #1e2530; color: #fff; font-size: 12.5px;
+    padding: 5px 10px; border-radius: 7px; transform: translate(-50%, calc(-100% - 8px)); white-space: nowrap; z-index: 5; opacity: 0; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 10px; font-size: 12.5px; color: var(--text-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+  .legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+  .legend span.off { opacity: .35; text-decoration: line-through; }
+  .pie-slice { cursor: pointer; transition: transform .25s, opacity .25s; transform-origin: center; }
+  .pie-slice:hover { transform: scale(1.04); }
+  .demo-relative { position: relative; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="../index.html"><span class="brand-mark">VIS</span><span>可视化导论</span></a>
+    <nav><a href="../index.html#chapters">全部章节</a></nav>
+  </div>
+</header>
+
+<div class="ch-layout">
+
+  <aside class="toc">
+    <a class="toc-back" href="../index.html">← 返回门户</a>
+    <div class="toc-ch">第 3 章 · 图表篇</div>
+    <a href="#kp1">3.1 柱状图:比较大小</a>
+    <a href="#kp2">3.2 折线图:看趋势</a>
+    <a href="#kp3">3.3 散点图:找关系</a>
+    <a href="#kp4">3.4 饼图:看占比</a>
+  </aside>
+
+  <main>
+    <div class="ch-hero">
+      <span class="kicker">第 3 章 · 图表篇 · ★★☆</span>
+      <h1>D3.js 常用图表</h1>
+      <p class="lead">
+        柱、线、散点、饼是统计图表的"四大金刚"。它们不是四种画法,
+        而是<strong>四种提问方式</strong>:谁大谁小?趋势如何?两件事有关吗?份额怎么分?
+        选错图表类型,再多美化也救不回来——先问对问题,再动手画图。
+      </p>
+      <div class="ch-tags"><span>柱状图</span><span>折线图</span><span>散点图</span><span>饼图</span><span>图表选择</span></div>
+    </div>
+
+    <div class="objectives">
+      <h2>🎯 学习目标</h2>
+      <ul>
+        <li>掌握四大图表各自的适用问题与禁忌场景</li>
+        <li>能为柱状图/折线图添加悬停提示与平滑重排动画</li>
+        <li>理解散点图的"颜色 = 类别、位置 = 两个变量"编码方式</li>
+        <li>知道饼图的使用边界(类目数 ≤ 5,占比差异明显)</li>
+      </ul>
+    </div>
+
+    <!-- ================= KP 3.1 ================= -->
+    <section class="kp" id="kp1">
+      <div class="kp-head"><span class="kp-badge">KP 3.1</span><h2>柱状图:比较大小</h2></div>
+      <div class="kp-body">
+        <p>
+          柱状图回答"分类 × 数值"的<strong>比较</strong>问题:哪个类目最大?差距多大?
+          人眼对"长度"的判断极其精确(感知精度仅次于位置),这是柱状图成为默认选择的根本原因。
+        </p>
+        <ul>
+          <li>柱宽一致、柱间距约柱宽的 20%~40%,比较才公平</li>
+          <li>y 轴<strong>必须从 0 开始</strong>——截断 y 轴会放大差异,制造误导</li>
+          <li>类目多且无序时,提供"按数值排序"比原顺序更有洞察力</li>
+        </ul>
+        <div class="note">💡 本站路径图的节点、第 1 章的加载进度,本质上都是"柱状思维":用长度编码数量。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>bar-chart.js</div>
+        <button class="copy">复制</button>
+<pre><code>const x = d3.scaleBand()                    // 类目轴:每类占一个"带"
+  .domain(data.map(d =&gt; d.month))
+  .range([PAD, W - PAD])
+  .padding(0.3);
+
+const y = d3.scaleLinear()
+  .domain([0, d3.max(data, d =&gt; d.value)])  // 柱状图 y 从 0 开始!
+  .range([H - PAD, PAD]);
+
+svg.selectAll("rect")
+  .data(data, d =&gt; d.month)
+  .join("rect")
+  .transition().duration(500)               // 数据换序时平滑重排
+  .attr("x", d =&gt; x(d.month))
+  .attr("y", d =&gt; y(d.value))
+  .attr("width", x.bandwidth())
+  .attr("height", d =&gt; y(0) - y(d.value));</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 门店月销量(悬停看数值 · 点击排序)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <button class="primary" id="c1-sort">↕ 切换排序:原序</button>
+            <button id="c1-shuffle">🎲 换一批数据</button>
+          </div>
+        </div>
+        <div class="demo-body demo-relative" id="c1-wrap">
+          <svg id="c1-svg" viewBox="0 0 640 260" style="width:100%"></svg>
+          <div class="chart-tip" id="c1-tip"></div>
+        </div>
+        <div class="demo-tip">提示:点击「切换排序」观察柱子的交换动画——排序后"哪个月最好卖"一眼可见,这正是排序带来的洞察。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 3.2 ================= -->
+    <section class="kp" id="kp2">
+      <div class="kp-head"><span class="kp-badge">KP 3.2</span><h2>折线图:看趋势</h2></div>
+      <div class="kp-body">
+        <p>
+          折线图回答"<strong>随某个连续变量(通常是时间)如何变化</strong>"的问题。
+          它的核心是<strong>斜率</strong>:读者看的是线段的陡缓,不是点的高低——
+          上升多快?哪里突变?有没有周期性?
+        </p>
+        <ul>
+          <li>折线数量 ≤ 4~5 条;太多线互相交叉,谁都看不清</li>
+          <li>x 轴点距必须与时间间隔<strong>成比例</strong>,否则趋势失真</li>
+          <li>面积图是折线的变体:线与轴之间填充,强调"累计量",适合单一序列</li>
+        </ul>
+        <div class="note">💡 悬停十字准线(crosshair)是折线图最实用的交互:把"某个时刻的值"精确地送到鼠标边。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>line-chart.js</div>
+        <button class="copy">复制</button>
+<pre><code>const line = d3.line()
+  .x(d =&gt; x(d.month))              // 位置比例尺
+  .y(d =&gt; y(d.temp))
+  .curve(d3.curveMonotoneX);       // 单调样条:平滑但不"过冲"
+
+const area = d3.area()
+  .x(d =&gt; x(d.month))
+  .y0(y(0))                        // 面积从基线(0)铺到
+  .y1(d =&gt; y(d.temp));
+
+svg.append("path")
+  .datum(data)
+  .attr("d", line)                 // 一条指令画出整条折线
+  .attr("fill", "none")
+  .attr("stroke", "#2f6fed");</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 月平均气温(移动鼠标,十字准线取值)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <button class="primary" id="c2-area">填充面积:关</button>
+            <button id="c2-city">🏙 换城市</button>
+          </div>
+        </div>
+        <div class="demo-body demo-relative" id="c2-wrap">
+          <svg id="c2-svg" viewBox="0 0 640 260" style="width:100%"></svg>
+          <div class="chart-tip" id="c2-tip"></div>
+        </div>
+        <div class="demo-tip">提示:注意 y 轴域随城市数据自动重算——气温范围不同的两条曲线,都能恰好铺满画布。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 3.3 ================= -->
+    <section class="kp" id="kp3">
+      <div class="kp-head"><span class="kp-badge">KP 3.3</span><h2>散点图:找关系</h2></div>
+      <div class="kp-body">
+        <p>
+          散点图一次编码<strong>两个(甚至更多)连续变量</strong>:x 是一个、y 是另一个,
+          点的疏密与走向揭示两者的关系——相关、聚类、离群点,一图全览。
+        </p>
+        <ul>
+          <li>位置是感知精度最高的视觉通道,散点图把它用到了极致</li>
+          <li>第三个变量可以用<strong>颜色(类别)</strong>或<strong>大小(数值)</strong>编码,再多就该慎重</li>
+          <li>几百点以上注意"过度绘制"(点叠成一团),可调透明度或换 Canvas(第 4 章)</li>
+        </ul>
+        <div class="note">💡 交互要点:悬停看坐标是基本盘;图例点击过滤、框选联动(第 5 章)是进阶。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>scatter.js</div>
+        <button class="copy">复制</button>
+<pre><code>const x = d3.scaleLinear().domain(d3.extent(data, d =&gt; d.height)).range([PAD, W - PAD]);
+const y = d3.scaleLinear().domain(d3.extent(data, d =&gt; d.weight)).range([H - PAD, PAD]);
+
+svg.selectAll("circle")
+  .data(data)
+  .join("circle")
+  .attr("cx", d =&gt; x(d.height))
+  .attr("cy", d =&gt; y(d.weight))
+  .attr("r",  5)
+  .attr("fill", d =&gt; color(d.group))     // 颜色 = 类别
+  .attr("fill-opacity", 0.75);             // 半透明,缓解重叠</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 身高与体重(点我高亮同组 · 图例可过滤)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <button class="primary" id="c3-regen">🎲 重新采样</button>
+          </div>
+        </div>
+        <div class="demo-body demo-relative" id="c3-wrap">
+          <svg id="c3-svg" viewBox="0 0 640 300" style="width:100%"></svg>
+          <div class="chart-tip" id="c3-tip"></div>
+          <div class="legend" id="c3-legend">
+            <span data-g="0"><i style="background:#2f6fed"></i>篮球组</span>
+            <span data-g="1"><i style="background:#f59e0b"></i>游泳组</span>
+            <span data-g="2"><i style="background:#0ea5a5"></i>棋类组</span>
+          </div>
+        </div>
+        <div class="demo-tip">提示:点击任一点,同组点亮、其他变暗——散点图的"组内模式"瞬间凸显。再点图例试试整组过滤。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 3.4 ================= -->
+    <section class="kp" id="kp4">
+      <div class="kp-head"><span class="kp-badge">KP 3.4</span><h2>饼图:看占比</h2></div>
+      <div class="kp-body">
+        <p>
+          饼图回答"<strong>部分占整体的比例</strong>"。人眼对角度的感知精度其实不高,
+          所以饼图的使用边界比想象中窄:
+        </p>
+        <ul>
+          <li>类目数 <strong>≤ 5</strong> 为宜;超过 7 类请改用柱状图</li>
+          <li>占比差异 &lt; 5° 的扇区几乎无法分辨——相邻份额接近时,柱状图更诚实</li>
+          <li>环形图(donut)中心可以放总量的 KPI 数字,信息密度更高,是饼图的首选变体</li>
+          <li>扇区从 12 点方向顺时针、按占比降序排列,阅读最省力</li>
+        </ul>
+        <div class="note warn">⚠️ 不要把多张饼图并排比较——人眼无法跨图比较角度。要比较两个"份额构成",用堆叠柱状图。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>pie.js</div>
+        <button class="copy">复制</button>
+<pre><code>const pie = d3.pie()
+  .value(d =&gt; d.share)
+  .sortValues((a, b) =&gt; b - a);      // 降序排列,阅读省力
+
+const arc = d3.arc()
+  .innerRadius(55)                   // &gt;0 即成环形图
+  .outerRadius(90)
+  .cornerRadius(4)
+  .padAngle(0.02);                   // 扇区间留缝,更现代
+
+svg.selectAll("path")
+  .data(pie(data))
+  .join("path")
+  .attr("d", arc)                    // 弧形路径由 arc 生成器算好
+  .attr("fill", d =&gt; color(d.index));</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 浏览器市场份额(悬停扇区 · 点击图例剔除重算)</h3>
+          <span class="spacer"></span>
+        </div>
+        <div class="demo-body demo-relative" id="c4-wrap">
+          <svg id="c4-svg" viewBox="0 0 640 300" style="width:100%"></svg>
+          <div class="chart-tip" id="c4-tip"></div>
+        </div>
+        <div class="demo-tip">提示:点击图例剔除某家浏览器,其余份额自动重新归一化——体会"占比永远是相对于整体"。</div>
+      </div>
+    </section>
+
+    <div class="ch-pager">
+      <a href="ch1-2.html"><span class="dir">← 上一章</span><span class="ttl">第 2 章 · D3.js 入门与 SVG 基础</span></a>
+      <a class="next" href="ch2-1.html"><span class="dir">下一章 →</span><span class="ttl">第 4 章 · Canvas 绘图基础</span></a>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/main.js"></script>
+<script src="../assets/lesson.js"></script>
+<script>
+(function () {
+  const V = window.Vis;
+
+  /* ========== 演示 3.1 柱状图 ========== */
+  const c1svg = document.getElementById("c1-svg");
+  const c1tip = document.getElementById("c1-tip");
+  const c1wrap = document.getElementById("c1-wrap");
+  const W = 640, H = 260, PL = 46, PB = 36, PT = 26;
+  let c1data = [], c1sorted = false;
+
+  function c1rand() {
+    const months = ["1月","2月","3月","4月","5月","6月","7月","8月"];
+    c1data = months.map((m) => ({ m, v: Math.round(40 + Math.random() * 160) }));
+  }
+  function c1render() {
+    const arr = c1sorted ? [...c1data].sort((a, b) => b.v - a.v) : c1data;
+    const max = Math.max(...arr.map((d) => d.v)) * 1.15;
+    const y = V.scaleLinear(0, max, H - PB, PT);
+    const bw = (W - PL - 16) / arr.length - 14;
+    c1svg.innerHTML = "";
+    // 网格与 y 刻度
+    for (let i = 0; i <= 4; i++) {
+      const val = (max / 4) * i, yy = y(val);
+      c1svg.appendChild(V.svgEl("line", { x1: PL, x2: W - 10, y1: yy, y2: yy, stroke: "#e9edf3" }));
+      const t = V.svgEl("text", { x: PL - 8, y: yy + 4, "text-anchor": "end", "font-size": 11, fill: "#8a94a3" });
+      t.textContent = Math.round(val); c1svg.appendChild(t);
+    }
+    arr.forEach((d, i) => {
+      const x = PL + i * ((W - PL - 16) / arr.length) + 7;
+      const r = V.svgEl("rect", { class: "bar-rect", x, y: y(d.v), width: bw, height: y(0) - y(d.v), rx: 5 });
+      r.addEventListener("mousemove", (e) => {
+        c1tip.style.opacity = 1;
+        c1tip.style.left = e.clientX - c1wrap.getBoundingClientRect().left + "px";
+        c1tip.style.top = e.clientY - c1wrap.getBoundingClientRect().top + "px";
+        c1tip.textContent = `${d.m}:${d.v} 件`;
+      });
+      r.addEventListener("mouseleave", () => (c1tip.style.opacity = 0));
+      const lb = V.svgEl("text", { x: x + bw / 2, y: y(d.v) - 7, "text-anchor": "middle", "font-size": 11, fill: "#5a6472", "font-family": "var(--mono)" });
+      lb.textContent = d.v;
+      const xl = V.svgEl("text", { x: x + bw / 2, y: H - 12, "text-anchor": "middle", "font-size": 12, fill: "#8a94a3" });
+      xl.textContent = d.m;
+      c1svg.appendChild(r); c1svg.appendChild(lb); c1svg.appendChild(xl);
+    });
+  }
+  document.getElementById("c1-sort").addEventListener("click", (e) => {
+    c1sorted = !c1sorted;
+    e.target.textContent = c1sorted ? "↕ 切换排序:降序" : "↕ 切换排序:原序";
+    c1render();
+  });
+  document.getElementById("c1-shuffle").addEventListener("click", () => { c1rand(); c1render(); });
+  c1rand(); c1render();
+
+  /* ========== 演示 3.2 折线图 + 十字准线 ========== */
+  const c2svg = document.getElementById("c2-svg");
+  const c2tip = document.getElementById("c2-tip");
+  const c2wrap = document.getElementById("c2-wrap");
+  const CITIES = {
+    "北京(1951–2020 均值)": [-4, -1, 6, 14, 20, 25, 27, 26, 21, 13, 4, -2],
+    "广州": [14, 15, 18, 22, 26, 28, 29, 29, 28, 25, 20, 16],
+    "哈尔滨": [-18, -13, -3, 7, 15, 21, 23, 22, 15, 6, -6, -15],
+  };
+  const cityNames = Object.keys(CITIES);
+  let cityIdx = 0, showArea = false;
+
+  function c2render() {
+    const name = cityNames[cityIdx];
+    const temps = CITIES[name];
+    const months = temps.map((_, i) => (i + 1) + "月");
+    const minT = Math.min(...temps) - 3, maxT = Math.max(...temps) + 3;
+    const x = V.scaleLinear(0, 11, PL, W - 24);
+    const y = V.scaleLinear(minT, maxT, H - PB, PT);
+    c2svg.innerHTML = "";
+    // 网格
+    for (let i = 0; i <= 4; i++) {
+      const val = minT + ((maxT - minT) / 4) * i, yy = y(val);
+      c2svg.appendChild(V.svgEl("line", { x1: PL, x2: W - 24, y1: yy, y2: yy, stroke: "#e9edf3" }));
+      const t = V.svgEl("text", { x: PL - 8, y: yy + 4, "text-anchor": "end", "font-size": 11, fill: "#8a94a3" });
+      t.textContent = Math.round(val) + "℃"; c2svg.appendChild(t);
+    }
+    months.forEach((m, i) => {
+      if (i % 2 === 0) {
+        const t = V.svgEl("text", { x: x(i), y: H - 12, "text-anchor": "middle", "font-size": 11, fill: "#8a94a3" });
+        t.textContent = m; c2svg.appendChild(t);
+      }
+    });
+    const pts = temps.map((t, i) => [x(i), y(t)]);
+    // 面积
+    if (showArea) {
+      const dArea = `M ${pts[0][0]},${y(minT)} ` + pts.map((p) => `L ${p[0]},${p[1]}`).join(" ") + ` L ${pts[11][0]},${y(minT)} Z`;
+      const area = V.svgEl("path", { d: dArea, fill: "#2f6fed", opacity: .12 });
+      area.style.transition = "opacity .3s";
+      c2svg.appendChild(area);
+    }
+    // 折线
+    const dLine = "M " + pts.map((p) => p.join(",")).join(" L ");
+    c2svg.appendChild(V.svgEl("path", { d: dLine, fill: "none", stroke: "#2f6fed", "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    // 数据点
+    pts.forEach((p, i) => c2svg.appendChild(V.svgEl("circle", { cx: p[0], cy: p[1], r: 3.5, fill: "#fff", stroke: "#2f6fed", "stroke-width": 2 })));
+    // 标题
+    const tt = V.svgEl("text", { x: PL + 4, y: 16, "font-size": 12.5, fill: "#5a6472", "font-weight": 600 });
+    tt.textContent = name; c2svg.appendChild(tt);
+    // 十字准线(默认隐藏)—— 元素与比例尺存入 c2ref,事件只绑定一次
+    const vline = V.svgEl("line", { y1: PT - 6, y2: H - PB, stroke: "#b6c2d6", "stroke-dasharray": "4 4", opacity: 0 });
+    const hline = V.svgEl("line", { x1: PL, x2: W - 24, stroke: "#b6c2d6", "stroke-dasharray": "4 4", opacity: 0 });
+    const hdot = V.svgEl("circle", { r: 5, fill: "#2f6fed", stroke: "#fff", "stroke-width": 2, opacity: 0 });
+    c2svg.appendChild(vline); c2svg.appendChild(hline); c2svg.appendChild(hdot);
+    c2ref = { x, y, temps, months, vline, hline, hdot };
+  }
+  let c2ref = null;
+  c2svg.addEventListener("mousemove", (e) => {
+    if (!c2ref) return;
+    const { x, y, temps, months, vline, hline, hdot } = c2ref;
+    const rect = c2svg.getBoundingClientRect();
+    const mx = ((e.clientX - rect.left) / rect.width) * W;
+    const i = Math.max(0, Math.min(11, Math.round((mx - PL) / ((W - 24 - PL) / 11))));
+    vline.setAttribute("x1", x(i)); vline.setAttribute("x2", x(i)); vline.setAttribute("opacity", 1);
+    hline.setAttribute("y1", y(temps[i])); hline.setAttribute("y2", y(temps[i])); hline.setAttribute("opacity", 1);
+    hdot.setAttribute("cx", x(i)); hdot.setAttribute("cy", y(temps[i])); hdot.setAttribute("opacity", 1);
+    c2tip.style.opacity = 1;
+    c2tip.style.left = e.clientX - c2wrap.getBoundingClientRect().left + "px";
+    c2tip.style.top = e.clientY - c2wrap.getBoundingClientRect().top + "px";
+    c2tip.textContent = `${months[i]}:${temps[i]}℃`;
+  });
+  c2svg.addEventListener("mouseleave", () => {
+    c2tip.style.opacity = 0;
+    if (c2ref) [c2ref.vline, c2ref.hline, c2ref.hdot].forEach((n) => n.setAttribute("opacity", 0));
+  });
+  document.getElementById("c2-area").addEventListener("click", (e) => {
+    showArea = !showArea;
+    e.target.textContent = showArea ? "填充面积:开" : "填充面积:关";
+    c2render();
+  });
+  document.getElementById("c2-city").addEventListener("click", () => { cityIdx = (cityIdx + 1) % cityNames.length; c2render(); });
+  c2render();
+
+  /* ========== 演示 3.3 散点图 ========== */
+  const c3svg = document.getElementById("c3-svg");
+  const c3tip = document.getElementById("c3-tip");
+  const c3wrap = document.getElementById("c3-wrap");
+  const H3 = 300;
+  const GROUPS = [
+    { name: "篮球组", color: "#2f6fed", h: [180, 200], w: [70, 95], n: 14 },
+    { name: "游泳组", color: "#f59e0b", h: [170, 188], w: [60, 78], n: 13 },
+    { name: "棋类组", color: "#0ea5a5", h: [158, 178], w: [48, 68], n: 13 },
+  ];
+  let c3pts = [], c3hidden = new Set(), c3focus = null;
+
+  function c3sample() {
+    let s = 7;
+    const rnd = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
+    c3pts = [];
+    GROUPS.forEach((g, gi) => {
+      for (let i = 0; i < g.n; i++) {
+        c3pts.push({
+          h: g.h[0] + rnd() * (g.h[1] - g.h[0]),
+          w: g.w[0] + rnd() * (g.w[1] - g.w[0]),
+          g: gi,
+        });
+      }
+    });
+  }
+  function c3render() {
+    const pts = c3pts.filter((p) => !c3hidden.has(p.g));
+    const xs = pts.map((p) => p.h), ys = pts.map((p) => p.w);
+    const x = V.scaleLinear(Math.min(...xs) - 4, Math.max(...xs) + 4, 52, W - 20);
+    const y = V.scaleLinear(Math.min(...ys) - 4, Math.max(...ys) + 4, H3 - 40, 26);
+    c3svg.innerHTML = "";
+    // 网格
+    for (let i = 0; i <= 4; i++) {
+      const xv = Math.min(...xs) - 4 + ((Math.max(...xs) + 4 - (Math.min(...xs) - 4)) / 4) * i;
+      const yv = Math.min(...ys) - 4 + ((Math.max(...ys) + 4 - (Math.min(...ys) - 4)) / 4) * i;
+      c3svg.appendChild(V.svgEl("line", { x1: x(xv), x2: x(xv), y1: 20, y2: H3 - 40, stroke: "#eef1f6" }));
+      c3svg.appendChild(V.svgEl("line", { x1: 52, x2: W - 20, y1: y(yv), y2: y(yv), stroke: "#eef1f6" }));
+      const tx = V.svgEl("text", { x: x(xv), y: H3 - 24, "text-anchor": "middle", "font-size": 10.5, fill: "#8a94a3" });
+      tx.textContent = Math.round(xv); c3svg.appendChild(tx);
+      const ty = V.svgEl("text", { x: 44, y: y(yv) + 4, "text-anchor": "end", "font-size": 10.5, fill: "#8a94a3" });
+      ty.textContent = Math.round(yv); c3svg.appendChild(ty);
+    }
+    const xl = V.svgEl("text", { x: (52 + W - 20) / 2, y: H3 - 6, "text-anchor": "middle", "font-size": 12, fill: "#5a6472" });
+    xl.textContent = "身高 (cm)"; c3svg.appendChild(xl);
+    const yl = V.svgEl("text", { x: 14, y: (H3 - 40 + 26) / 2, "font-size": 12, fill: "#5a6472", transform: `rotate(-90 14 ${(H3 - 14) / 2})`, "text-anchor": "middle" });
+    yl.textContent = "体重 (kg)"; c3svg.appendChild(yl);
+    // 点
+    c3pts.forEach((p) => {
+      if (c3hidden.has(p.g)) return;
+      const dim = c3focus !== null && c3focus !== p.g;
+      const c = V.svgEl("circle", {
+        cx: x(p.h), cy: y(p.w), r: 6,
+        fill: GROUPS[p.g].color, opacity: dim ? 0.12 : 0.8,
+        stroke: dim ? "none" : "#fff", "stroke-width": 1.5, cursor: "pointer",
+      });
+      c.style.transition = "opacity .25s";
+      c.addEventListener("mousemove", (e) => {
+        c3tip.style.opacity = 1;
+        c3tip.style.left = e.clientX - c3wrap.getBoundingClientRect().left + "px";
+        c3tip.style.top = e.clientY - c3wrap.getBoundingClientRect().top + "px";
+        c3tip.textContent = `${GROUPS[p.g].name} · ${p.h.toFixed(0)}cm / ${p.w.toFixed(0)}kg`;
+      });
+      c.addEventListener("mouseleave", () => (c3tip.style.opacity = 0));
+      c.addEventListener("click", () => { c3focus = c3focus === p.g ? null : p.g; c3render(); });
+      c3svg.appendChild(c);
+    });
+  }
+  document.getElementById("c3-regen").addEventListener("click", () => { c3sample(); c3render(); });
+  document.querySelectorAll("#c3-legend span").forEach((sp) =>
+    sp.addEventListener("click", () => {
+      const g = +sp.dataset.g;
+      if (c3hidden.has(g)) c3hidden.delete(g); else c3hidden.add(g);
+      sp.classList.toggle("off");
+      c3render();
+    }));
+  c3sample(); c3render();
+
+  /* ========== 演示 3.4 环形图 ========== */
+  const c4svg = document.getElementById("c4-svg");
+  const c4tip = document.getElementById("c4-tip");
+  const c4wrap = document.getElementById("c4-wrap");
+  const BROWSERS = [
+    { name: "Chrome", v: 64.8 }, { name: "Safari", v: 18.1 },
+    { name: "Edge", v: 5.2 }, { name: "Firefox", v: 3.2 }, { name: "其他", v: 8.7 },
+  ];
+  let c4off = new Set();
+
+  function polar(cx, cy, r, ang) { return [cx + r * Math.cos(ang), cy + r * Math.sin(ang)]; }
+  function arcPath(cx, cy, r0, r1, a0, a1) {
+    const [sx, sy] = polar(cx, cy, r1, a0), [ex, ey] = polar(cx, cy, r1, a1);
+    const [sxi, syi] = polar(cx, cy, r0, a1), [exi, eyi] = polar(cx, cy, r0, a0);
+    const large = a1 - a0 > Math.PI ? 1 : 0;
+    return `M ${sx} ${sy} A ${r1} ${r1} 0 ${large} 1 ${ex} ${ey} L ${sxi} ${syi} A ${r0} ${r0} 0 ${large} 0 ${exi} ${eyi} Z`;
+  }
+  function c4render() {
+    const act = BROWSERS.filter((b, i) => !c4off.has(i));
+    const total = act.reduce((s, b) => s + b.v, 0);
+    c4svg.innerHTML = "";
+    const cx = 190, cy = 150, r0 = 58, r1 = 105;
+    let ang = -Math.PI / 2;
+    act.forEach((b) => {
+      const frac = b.v / total;
+      const a0 = ang, a1 = ang + frac * Math.PI * 2 - 0.015;
+      ang += frac * Math.PI * 2;
+      const color = V.palette[BROWSERS.indexOf(b) % 8];
+      const p = V.svgEl("path", { d: arcPath(cx, cy, r0, r1, a0, a1), fill: color, class: "pie-slice" });
+      p.addEventListener("mousemove", (e) => {
+        c4tip.style.opacity = 1;
+        c4tip.style.left = e.clientX - c4wrap.getBoundingClientRect().left + "px";
+        c4tip.style.top = e.clientY - c4wrap.getBoundingClientRect().top + "px";
+        c4tip.textContent = `${b.name}:${b.v}% → 归一化 ${(frac * 100).toFixed(1)}%`;
+      });
+      p.addEventListener("mouseleave", () => (c4tip.style.opacity = 0));
+      c4svg.appendChild(p);
+    });
+    // 中心 KPI
+    const t1 = V.svgEl("text", { x: cx, y: cy - 4, "text-anchor": "middle", "font-size": 22, "font-weight": 800, fill: "#1e2530", "font-family": "var(--mono)" });
+    t1.textContent = "100%";
+    const t2 = V.svgEl("text", { x: cx, y: cy + 16, "text-anchor": "middle", "font-size": 11, fill: "#8a94a3" });
+    t2.textContent = act.length + " 个类目";
+    c4svg.appendChild(t1); c4svg.appendChild(t2);
+    // 图例
+    BROWSERS.forEach((b, i) => {
+      const ly = 60 + i * 42;
+      const off = c4off.has(i);
+      const g = V.svgEl("g", { cursor: "pointer", opacity: off ? 0.35 : 1 });
+      g.appendChild(V.svgEl("rect", { x: 380, y: ly, width: 14, height: 14, rx: 4, fill: V.palette[i % 8] }));
+      const lt = V.svgEl("text", { x: 402, y: ly + 12, "font-size": 13.5, fill: "#1e2530" });
+      lt.textContent = b.name;
+      const vt = V.svgEl("text", { x: 560, y: ly + 12, "font-size": 13, fill: "#5a6472", "font-family": "var(--mono)", "text-anchor": "end" });
+      vt.textContent = off ? "—" : (b.v / total * 100).toFixed(1) + "%";
+      g.appendChild(lt); g.appendChild(vt);
+      g.addEventListener("click", () => {
+        if (c4off.has(i)) c4off.delete(i); else c4off.add(i);
+        c4render();
+      });
+      c4svg.appendChild(g);
+    });
+    const hint = V.svgEl("text", { x: 380, y: 290, "font-size": 11, fill: "#8a94a3" });
+    hint.textContent = "点击图例可剔除 / 恢复类目,份额自动归一化";
+    c4svg.appendChild(hint);
+  }
+  c4render();
+})();
+</script>
+</body>
+</html>

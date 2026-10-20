@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 4 章 · Canvas 绘图基础 — 可视化导论</title>
+<meta name="description" content="比较 SVG 与 Canvas,学习 Canvas 绘图指令和 requestAnimationFrame 动画循环。">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+  .fps-tag { font-family: var(--mono); font-size: 12px; padding: 3px 9px; border-radius: 6px; display: inline-block; }
+  .fps-good { background: #e7f9f0; color: #0b6a4a; }
+  .fps-mid  { background: #fdf6e8; color: #8a5d05; }
+  .fps-bad  { background: #fdecec; color: #b91c1c; }
+  .engine-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .engine-grid > div { border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+  .engine-grid h4 { font-size: 13px; color: var(--text-2); margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .engine-grid canvas, .engine-grid svg { width: 100%; border-radius: 8px; background: #0f172a; display: block; }
+  #draw-canvas { width: 100%; background: #fff; border: 1px solid var(--border); border-radius: 10px; cursor: crosshair; touch-action: none; }
+  .swatches { display: inline-flex; gap: 6px; vertical-align: middle; }
+  .swatches i { width: 20px; height: 20px; border-radius: 6px; cursor: pointer; display: inline-block; border: 2px solid transparent; }
+  .swatches i.on { border-color: #1e2530; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="../index.html"><span class="brand-mark">VIS</span><span>可视化导论</span></a>
+    <nav><a href="../index.html#chapters">全部章节</a></nav>
+  </div>
+</header>
+
+<div class="ch-layout">
+
+  <aside class="toc">
+    <a class="toc-back" href="../index.html">← 返回门户</a>
+    <div class="toc-ch">第 4 章 · 图表篇</div>
+    <a href="#kp1">4.1 SVG 还是 Canvas?</a>
+    <a href="#kp2">4.2 Canvas 基本绘制</a>
+    <a href="#kp3">4.3 动画循环 rAF</a>
+  </aside>
+
+  <main>
+    <div class="ch-hero">
+      <span class="kicker">第 4 章 · 图表篇 · ★★☆</span>
+      <h1>Canvas 绘图基础</h1>
+      <p class="lead">
+        SVG 是"保留模式":每个图形是 DOM 元素,浏览器替你管理;Canvas 是"立即模式":
+        拿到画笔一笔一笔画,画完就只剩像素。<strong>没有最好的技术,只有匹配数据规模的选型</strong>——
+        几百个元素选 SVG 享受交互便利,几千上万个点选 Canvas 换取性能。
+      </p>
+      <div class="ch-tags"><span>Canvas 2D</span><span>立即模式</span><span>requestAnimationFrame</span><span>性能对比</span></div>
+    </div>
+
+    <div class="objectives">
+      <h2>🎯 学习目标</h2>
+      <ul>
+        <li>说清 SVG(保留模式)与 Canvas(立即模式)的核心差异与选型依据</li>
+        <li>掌握 Canvas 2D 的基本绘制指令:矩形、弧、路径、填充与描边</li>
+        <li>理解 <code>requestAnimationFrame</code> 为什么优于 <code>setInterval</code></li>
+        <li>亲手体验"同一动画,两种引擎"的帧率差距</li>
+      </ul>
+    </div>
+
+    <!-- ================= KP 4.1 ================= -->
+    <section class="kp" id="kp1">
+      <div class="kp-head"><span class="kp-badge">KP 4.1</span><h2>SVG 还是 Canvas?一张表 + 一场赛跑</h2></div>
+      <div class="kp-body">
+        <p>两种渲染模型的本质区别:
+        </p>
+        <ul>
+          <li><strong>SVG = 保留模式(Retained Mode)</strong>:你声明"这里有个圆",浏览器保存它。每个圆是 DOM 节点,可绑定事件、加 CSS——代价是元素一多,DOM 管理开销爆炸。</li>
+          <li><strong>Canvas = 立即模式(Immediate Mode)</strong>:你说"画个圆",浏览器画完就忘。只剩像素,没有个体可交互——换来的是,画一万个圆也只花一次栅格化的时间。</li>
+        </ul>
+        <div class="note">💡 粗略经验值:&lt; 1,000 个可交互元素用 SVG;数据点成千上万(散点墙、轨迹、粒子)用 Canvas;
+        百万级(大规模地理、3D)上 WebGL(第 7 章的工具选型会再遇到它)。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>engine-compare.js</div>
+        <button class="copy">复制</button>
+<pre><code>// 同样画 N 个运动粒子,两种引擎的写法
+// SVG:每个粒子一个 <circle> DOM 元素,每帧改属性
+circles.forEach((c, i) =&gt; {
+  c.setAttribute("cx", pos[i].x);   // 触发 DOM 属性更新
+  c.setAttribute("cy", pos[i].y);   // × N 个元素 × 每帧
+});
+
+// Canvas:每帧清屏重画,没有任何 DOM 参与
+function frame() {
+  ctx.clearRect(0, 0, W, H);        // 1. 擦掉上一帧
+  for (const p of particles) {
+    ctx.beginPath();                // 2. 开始一条路径
+    ctx.arc(p.x, p.y, p.r, 0, 6.28);// 3. 圆弧
+    ctx.fill();                     // 4. 填充 —— 画完即忘
+  }
+  requestAnimationFrame(frame);
+}</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 双引擎粒子赛跑(实时 FPS 对比)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <label for="pn">粒子数 <b id="pn-label" style="color:var(--accent)">800</b></label>
+            <input type="range" id="pn" min="100" max="4000" step="100" value="800">
+            <button id="p-pause">⏸ 暂停</button>
+          </div>
+        </div>
+        <div class="demo-body">
+          <div class="engine-grid">
+            <div>
+              <h4><span>SVG 引擎</span><span class="fps-tag" id="fps-svg">-- fps</span></h4>
+              <svg id="p-svg" viewBox="0 0 300 170"></svg>
+            </div>
+            <div>
+              <h4><span>Canvas 引擎</span><span class="fps-tag" id="fps-canvas">-- fps</span></h4>
+              <canvas id="p-canvas" width="300" height="170"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="demo-tip">提示:把粒子数拖到 3000+,SVG 一侧帧率跳水、肉眼可见卡顿,Canvas 侧依然丝滑——这就是"DOM 开销"的直观代价。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 4.2 ================= -->
+    <section class="kp" id="kp2">
+      <div class="kp-head"><span class="kp-badge">KP 4.2</span><h2>画笔上手:基本绘制指令</h2></div>
+      <div class="kp-body">
+        <p>
+          Canvas 的 API 像一支画笔的工作流程:<strong>选颜色 → 起笔(path)→ 落笔(描/填)</strong>。
+          所有复杂图形都从 <code>beginPath()</code> 开始,到 <code>fill()</code> 或 <code>stroke()</code> 结束;
+          中间用 <code>moveTo / lineTo / arc / rect</code> 描述路径。
+        </p>
+        <ul>
+          <li><code>fillStyle / strokeStyle</code>:填充色 / 描边色(支持 rgba,做出半透明叠加)</li>
+          <li><code>lineWidth / lineCap / lineJoin</code>:线宽与端点样式(手绘感的关键)</li>
+          <li>坐标体系与 SVG 一致:左上原点、y 向下; 高分屏需按 <code>devicePixelRatio</code> 放大画布再缩小 CSS 尺寸,否则模糊</li>
+        </ul>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>canvas-draw.js</div>
+        <button class="copy">复制</button>
+<pre><code>const ctx = canvas.getContext("2d");
+
+ctx.strokeStyle = "#2f6fed";          // 描边色
+ctx.lineWidth = 6;
+ctx.lineCap = "round";                // 端点圆润,笔画自然
+ctx.lineJoin = "round";
+
+canvas.addEventListener("pointermove", (e) =&gt; {
+  if (e.buttons !== 1) return;        // 仅按住左键时绘制
+  ctx.beginPath();
+  ctx.moveTo(lastX, lastY);           // 从上一点
+  ctx.lineTo(e.offsetX, e.offsetY);   // 画到当前点
+  ctx.stroke();                       // 落笔
+  [lastX, lastY] = [e.offsetX, e.offsetY];
+});
+
+// 高分屏适配:物理像素放大,CSS 尺寸不变
+const dpr = window.devicePixelRatio || 1;
+canvas.width  = cssW * dpr;
+canvas.height = cssH * dpr;
+ctx.scale(dpr, dpr);</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · Canvas 手写画板(按住鼠标绘制)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <span class="swatches" id="dw-colors">
+              <i class="on" style="background:#2f6fed"></i><i style="background:#ef4444"></i>
+              <i style="background:#0ea5a5"></i><i style="background:#f59e0b"></i><i style="background:#1e2530"></i>
+            </span>
+            <label for="dw-width" class="sr-only">画笔粗细</label>
+            <select id="dw-width"><option value="3">细 3px</option><option value="6" selected>中 6px</option><option value="12">粗 12px</option><option value="24">马克笔 24px</option></select>
+            <button id="dw-eraser">🧽 橡皮</button>
+            <button class="primary" id="dw-clear">清空</button>
+          </div>
+        </div>
+        <div class="demo-body">
+          <canvas id="draw-canvas" width="640" height="280"></canvas>
+        </div>
+        <div class="demo-tip">提示:每一条笔画都是一次 beginPath → moveTo → lineTo → stroke。试着签个名,然后截到作业里。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 4.3 ================= -->
+    <section class="kp" id="kp3">
+      <div class="kp-head"><span class="kp-badge">KP 4.3</span><h2>动画循环:requestAnimationFrame</h2></div>
+      <div class="kp-body">
+        <p>
+          Canvas 动画的公式只有一行:<strong>擦掉 → 算新位置 → 画上 → 下一帧再来</strong>。
+          驱动这一循环的正确工具是 <code>requestAnimationFrame</code>(rAF),
+          它把回调排队到浏览器<strong>下一次重绘之前</strong>执行。
+        </p>
+        <p>为什么不用 <code>setInterval(fn, 16)</code>?</p>
+        <ul>
+          <li>rAF 与屏幕刷新<strong>自动同步</strong>(60/120Hz 都对),setInterval 的 16ms 只是猜测</li>
+          <li><strong>后台标签页自动暂停</strong>,不浪费电;setInterval 会照常空转</li>
+          <li>动画基于<strong>时间差 dt</strong> 计算,而不是假设"每帧恰好 16ms"——帧率波动时速度依然稳定</li>
+        </ul>
+        <div class="note warn">⚠️ 记住公式 <code>x += v * dt</code>,其中 dt 是距上一帧的真实秒数。写死 <code>x += 1</code> 的动画,在 120Hz 屏上会跑两倍快。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>anim-loop.js</div>
+        <button class="copy">复制</button>
+<pre><code>let last = performance.now();
+
+function loop(now) {
+  const dt = (now - last) / 1000;     // 真实时间差(秒)
+  last = now;
+
+  ctx.clearRect(0, 0, W, H);
+  for (const ball of balls) {
+    ball.x += ball.vx * dt;           // 速度 × 时间,帧率无关
+    ball.y += ball.vy * dt;
+    if (ball.x &lt; ball.r || ball.x &gt; W - ball.r) ball.vx *= -1;   // 碰壁反弹
+    if (ball.y &lt; ball.r || ball.y &gt; H - ball.r) ball.vy *= -1;
+
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    ctx.fillStyle = ball.color;
+    ctx.fill();
+  }
+  requestAnimationFrame(loop);        // 排队下一帧
+}
+requestAnimationFrame(loop);</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 弹跳球物理沙盒</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <button class="primary" id="bb-toggle">⏸ 暂停</button>
+            <button id="bb-add">+ 球</button>
+            <button id="bb-reset">重置</button>
+            <span style="font-size:12px;color:var(--text-3)" id="bb-info"></span>
+          </div>
+        </div>
+        <div class="demo-body">
+          <canvas id="bb-canvas" width="640" height="260" style="width:100%;border-radius:10px;background:#0f172a"></canvas>
+        </div>
+        <div class="demo-tip">提示:右上角实时显示帧率与 dt。暂停 / 恢复后球速不变——因为速度乘的是真实时间差,不是帧数。</div>
+      </div>
+    </section>
+
+    <div class="ch-pager">
+      <a href="ch1-3.html"><span class="dir">← 上一章</span><span class="ttl">第 3 章 · D3.js 常用图表</span></a>
+      <a class="next" href="ch2-2.html"><span class="dir">下一章 →</span><span class="ttl">第 5 章 · 交互进阶与动画</span></a>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/main.js"></script>
+<script src="../assets/lesson.js"></script>
+<script>
+(function () {
+  /* ========== 演示 4.1:双引擎粒子赛跑 ========== */
+  const V = window.Vis;
+  const pSvg = document.getElementById("p-svg");
+  const pCanvas = document.getElementById("p-canvas");
+  const pCtx = pCanvas.getContext("2d");
+  const fpsSvgEl = document.getElementById("fps-svg");
+  const fpsCanvasEl = document.getElementById("fps-canvas");
+  const pnInput = document.getElementById("pn");
+  const pnLabel = document.getElementById("pn-label");
+  let paused = false, nodes = [], parts = [];
+
+  function makeParticles(n) {
+    const gen = () => Array.from({ length: n }, () => ({
+      x: Math.random() * 300, y: Math.random() * 170,
+      vx: (Math.random() - 0.5) * 80, vy: (Math.random() - 0.5) * 80,
+      r: 1.5 + Math.random() * 2.5,
+      c: V.palette[Math.floor(Math.random() * 4)],
+    }));
+    parts = gen();
+    // SVG 侧
+    pSvg.innerHTML = "";
+    nodes = parts.map((p) => {
+      const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      c.setAttribute("r", p.r); c.setAttribute("fill", p.c);
+      pSvg.appendChild(c);
+      return c;
+    });
+    pnLabel.textContent = n;
+  }
+
+  let framesSvg = 0, framesCv = 0, lastStat = performance.now(), lastT = performance.now();
+  function fpsClass(f) { return f >= 50 ? "fps-good" : f >= 30 ? "fps-mid" : "fps-bad"; }
+
+  function loop(now) {
+    const dt = Math.min((now - lastT) / 1000, 0.05);
+    lastT = now;
+    if (!paused) {
+      // 更新
+      for (const p of parts) {
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        if (p.x < 0 || p.x > 300) p.vx *= -1, p.x = Math.max(0, Math.min(300, p.x));
+        if (p.y < 0 || p.y > 170) p.vy *= -1, p.y = Math.max(0, Math.min(170, p.y));
+      }
+      // SVG 渲染
+      for (let i = 0; i < parts.length; i++) {
+        nodes[i].setAttribute("cx", parts[i].x);
+        nodes[i].setAttribute("cy", parts[i].y);
+      }
+      framesSvg++;
+      // Canvas 渲染
+      pCtx.clearRect(0, 0, 300, 170);
+      for (const p of parts) {
+        pCtx.beginPath();
+        pCtx.arc(p.x, p.y, p.r, 0, 6.2832);
+        pCtx.fillStyle = p.c;
+        pCtx.fill();
+      }
+      framesCv++;
+    }
+    // 每秒统计
+    if (now - lastStat >= 1000) {
+      const f1 = framesSvg, f2 = framesCv;
+      framesSvg = framesCv = 0; lastStat = now;
+      fpsSvgEl.textContent = f1 + " fps";
+      fpsCanvasEl.textContent = f2 + " fps";
+      fpsSvgEl.className = "fps-tag " + fpsClass(f1);
+      fpsCanvasEl.className = "fps-tag " + fpsClass(f2);
+    }
+    requestAnimationFrame(loop);
+  }
+  pnInput.addEventListener("input", () => makeParticles(+pnInput.value));
+  document.getElementById("p-pause").addEventListener("click", (e) => {
+    paused = !paused;
+    e.target.textContent = paused ? "▶ 继续" : "⏸ 暂停";
+  });
+  makeParticles(800);
+  requestAnimationFrame(loop);
+
+  /* ========== 演示 4.2:手写画板 ========== */
+  const dc = document.getElementById("draw-canvas");
+  const dctx = dc.getContext("2d");
+  let drawing = false, lastX = 0, lastY = 0, color = "#2f6fed", width = 6, eraser = false;
+
+  // 白底
+  dctx.fillStyle = "#fff"; dctx.fillRect(0, 0, dc.width, dc.height);
+
+  function pos(e) {
+    const r = dc.getBoundingClientRect();
+    return [(e.clientX - r.left) * (dc.width / r.width), (e.clientY - r.top) * (dc.height / r.height)];
+  }
+  dc.addEventListener("pointerdown", (e) => {
+    drawing = true; [lastX, lastY] = pos(e);
+    dc.setPointerCapture(e.pointerId);
+  });
+  dc.addEventListener("pointermove", (e) => {
+    if (!drawing) return;
+    const [x, y] = pos(e);
+    dctx.beginPath();
+    dctx.strokeStyle = eraser ? "#ffffff" : color;
+    dctx.lineWidth = eraser ? 24 : width;
+    dctx.lineCap = "round"; dctx.lineJoin = "round";
+    dctx.moveTo(lastX, lastY); dctx.lineTo(x, y); dctx.stroke();
+    [lastX, lastY] = [x, y];
+  });
+  dc.addEventListener("pointerup", () => (drawing = false));
+  document.querySelectorAll("#dw-colors i").forEach((i) =>
+    i.addEventListener("click", () => {
+      document.querySelectorAll("#dw-colors i").forEach((j) => j.classList.remove("on"));
+      i.classList.add("on"); color = i.style.background; eraser = false;
+    }));
+  document.getElementById("dw-width").addEventListener("change", (e) => (width = +e.target.value));
+  document.getElementById("dw-eraser").addEventListener("click", () => (eraser = true));
+  document.getElementById("dw-clear").addEventListener("click", () => {
+    dctx.fillStyle = "#fff"; dctx.fillRect(0, 0, dc.width, dc.height);
+  });
+
+  /* ========== 演示 4.3:弹跳球 ========== */
+  const bb = document.getElementById("bb-canvas");
+  const bctx = bb.getContext("2d");
+  const bbInfo = document.getElementById("bb-info");
+  let balls = [], bbRunning = true, bbLast = performance.now(), bbFrames = 0, bbStat = performance.now(), bbFps = 0;
+
+  function addBall() {
+    balls.push({
+      x: 40 + Math.random() * 560, y: 40 + Math.random() * 180,
+      vx: (Math.random() - 0.5) * 260, vy: (Math.random() - 0.5) * 260,
+      r: 8 + Math.random() * 14, c: V.palette[Math.floor(Math.random() * 8)],
+    });
+  }
+  function bbLoop(now) {
+    const dt = Math.min((now - bbLast) / 1000, 0.05);
+    bbLast = now;
+    if (bbRunning) {
+      bctx.clearRect(0, 0, 640, 260);
+      for (const b of balls) {
+        b.x += b.vx * dt; b.y += b.vy * dt;
+        if (b.x < b.r || b.x > 640 - b.r) { b.vx *= -1; b.x = Math.max(b.r, Math.min(640 - b.r, b.x)); }
+        if (b.y < b.r || b.y > 260 - b.r) { b.vy *= -1; b.y = Math.max(b.r, Math.min(260 - b.r, b.y)); }
+        bctx.beginPath();
+        bctx.arc(b.x, b.y, b.r, 0, 6.2832);
+        bctx.fillStyle = b.c; bctx.fill();
+        // 高光
+        bctx.beginPath();
+        bctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.25, 0, 6.2832);
+        bctx.fillStyle = "rgba(255,255,255,.5)"; bctx.fill();
+      }
+      bbFrames++;
+      if (now - bbStat >= 1000) {
+        bbFps = bbFrames; bbFrames = 0; bbStat = now;
+        bbInfo.textContent = `${balls.length} 球 · ${bbFps} fps · dt≈${(1000 / Math.max(bbFps, 1)).toFixed(1)}ms`;
+      }
+    }
+    requestAnimationFrame(bbLoop);
+  }
+  document.getElementById("bb-toggle").addEventListener("click", (e) => {
+    bbRunning = !bbRunning;
+    e.target.textContent = bbRunning ? "⏸ 暂停" : "▶ 继续";
+    bbLast = performance.now();       // 恢复时重置计时,避免 dt 暴涨
+  });
+  document.getElementById("bb-add").addEventListener("click", addBall);
+  document.getElementById("bb-reset").addEventListener("click", () => { balls = []; addBall(); addBall(); addBall(); });
+  addBall(); addBall(); addBall();
+  requestAnimationFrame(bbLoop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 6 章 · D3 可视化实践 — 可视化导论</title>
+<meta name="description" content="从数据加载与清洗到层级布局和仪表盘,完成一套 D3 可视化工作流。">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+  table.dirty { border-collapse: collapse; font-size: 13px; width: 100%; }
+  table.dirty th { background: var(--bg-soft); color: var(--text-2); font-weight: 600; text-align: left; }
+  table.dirty th, table.dirty td { padding: 7px 12px; border: 1px solid var(--border); }
+  table.dirty tr.bad td { background: #fdecec; color: #b91c1c; text-decoration: line-through; }
+  table.dirty tr.bad td:first-child { text-decoration: none; }
+  table.dirty tr.fixed td { background: #e7f9f0; }
+  .fix-log { font-family: var(--mono); font-size: 12px; color: #5a6472; background: var(--bg-soft);
+    border-radius: 8px; padding: 10px 14px; margin-top: 10px; min-height: 20px; line-height: 1.8; }
+  .tree-row { cursor: pointer; transition: background .15s; }
+  .tree-row:hover { background: var(--bg-soft); }
+  .tree-row.hl { background: var(--accent-soft); }
+  .tm-rect { cursor: pointer; transition: opacity .2s; }
+  .dash-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+  .dash-kpi { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+  .dash-kpi .v { font-size: 24px; font-weight: 800; font-family: var(--mono); color: var(--accent); }
+  .dash-kpi .l { font-size: 12px; color: var(--text-3); }
+  .dash-kpi .d { font-size: 11.5px; margin-top: 2px; }
+  .up { color: #0b6a4a; } .down { color: #b91c1c; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="../index.html"><span class="brand-mark">VIS</span><span>可视化导论</span></a>
+    <nav><a href="../index.html#chapters">全部章节</a></nav>
+  </div>
+</header>
+
+<div class="ch-layout">
+
+  <aside class="toc">
+    <a class="toc-back" href="../index.html">← 返回门户</a>
+    <div class="toc-ch">第 6 章 · 交互篇</div>
+    <a href="#kp1">6.1 数据加载与清洗</a>
+    <a href="#kp2">6.2 层级布局:树与矩形树图</a>
+    <a href="#kp3">6.3 组装迷你仪表盘</a>
+  </aside>
+
+  <main>
+    <div class="ch-hero">
+      <span class="kicker">第 6 章 · 交互篇 · ★★★★</span>
+      <h1>D3 可视化实践</h1>
+      <p class="lead">
+        真实项目里,"画图"只占两成时间,剩下八成是<strong>把数据弄干净、选对布局、把视图组装成整体</strong>。
+        本章走完一条完整流水线:脏数据进来,交互作品出去——这是期末项目(第 9 章)的预演。
+      </p>
+      <div class="ch-tags"><span>数据清洗</span><span>Treemap</span><span>层级数据</span><span>Dashboard</span></div>
+    </div>
+
+    <div class="objectives">
+      <h2>🎯 学习目标</h2>
+      <ul>
+        <li>会用 <code>d3.csv / json</code> 加载数据,并识别缺失值、类型错乱、异常值三类脏数据</li>
+        <li>理解层级数据的 <code>hierarchy</code> 抽象,掌握缩进树与矩形树图两种布局</li>
+        <li>能把 KPI 卡 + 柱状图 + 折线图组装成一个数据联动的迷你仪表盘</li>
+      </ul>
+    </div>
+
+    <!-- ================= KP 6.1 ================= -->
+    <section class="kp" id="kp1">
+      <div class="kp-head"><span class="kp-badge">KP 6.1</span><h2>数据加载与清洗:垃圾进,垃圾出</h2></div>
+      <div class="kp-body">
+        <p>
+          可视化界有条铁律 <strong>GIGO(Garbage In, Garbage Out)</strong>:数据不干净,图表越精美越误导。
+          三类最常见的脏数据各有对策:
+        </p>
+        <ul>
+          <li><strong>缺失值</strong>(空单元格):数值型用中位数填充或整行剔除;类别型标"未知"——<strong>绝不能</strong>当 0 处理</li>
+          <li><strong>类型错乱</strong>:CSV 里一切都是字符串,<code>"+120"</code>、<code>"1,200"</code>、<code>"120件"</code> 都要解析成数字</li>
+          <li><strong>异常值</strong>:单价 3 万元一杯的奶茶,可能是录错的小数点;先 <code>filter</code> 再看分布,或用分位数截尾</li>
+        </ul>
+        <div class="note">💡 工程习惯:清洗函数保持<strong>纯函数</strong>(输入原始数据,返回干净数据),并打印清洗日志(删了几行、改了几个值)——未来的你会感谢这份日志。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>clean.js</div>
+        <button class="copy">复制</button>
+<pre><code>const raw = await d3.csv("sales.csv", d3.autoType);   // autoType 尝试自动转类型
+
+function clean(rows) {
+  const log = [];
+  const out = rows.filter((r) =&gt; {
+    if (r.price == null || Number.isNaN(+r.price)) {   // 缺失 → 剔除并记日志
+      log.push(`删除缺失行:${r.id}`);
+      return false;
+    }
+    return true;
+  }).map((r) =&gt; {
+    const price = parseFloat(String(r.price).replace(/[,¥]/g, "")); // "1,200" → 1200
+    if (price &gt; 10000) log.push(`截尾异常值:${r.id} ${price} → 10000`);
+    return { ...r, price: Math.min(price, 10000) };
+  });
+  console.log(log.join("\n"));
+  return out;
+}</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 脏数据体检与清洗(点击按钮逐项处理)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <button class="primary" id="cl-run">🧹 执行清洗</button>
+            <button id="cl-reset">还原脏数据</button>
+          </div>
+        </div>
+        <div class="demo-body">
+          <table class="dirty" id="cl-table"></table>
+          <div class="fix-log" id="cl-log">清洗日志将显示在这里……</div>
+        </div>
+        <div class="demo-tip">提示:红底行 = 有问题的数据;点击「执行清洗」观察每一行被如何处理,日志同步记录——这就是清洗函数应有的透明度。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 6.2 ================= -->
+    <section class="kp" id="kp2">
+      <div class="kp-head"><span class="kp-badge">KP 6.2</span><h2>层级布局:同一棵树的两种长相</h2></div>
+      <div class="kp-body">
+        <p>
+          文件目录、组织架构、预算科目——现实里大量数据天生<strong>层级</strong>。
+          D3 用 <code>d3.hierarchy</code> 把它们统一成"节点树 + 数值"的抽象,
+          再交给不同<strong>布局算法</strong>生成坐标:
+        </p>
+        <ul>
+          <li><strong>缩进树(indent tree)</strong>:每层缩进一格,适合行数不多、要读文字的场景</li>
+          <li><strong>矩形树图(treemap)</strong>:把父节点矩形按子节点数值占比<strong>切分</strong>,面积 = 数值,一屏看穿"钱/量都花在哪"</li>
+        </ul>
+        <p>
+          树图切分的关键是 <code>d3.treemapTileSquarify</code>:让小矩形尽量接近正方形,
+          人眼比较面积才不失真(细长条的面积极难估)。
+        </p>
+        <div class="note">💡 点面积图里的矩形 = 选中该分支;缩进树会同步高亮"根 → 该节点"的路径。两图共用同一份数据与选中状态,这就是第 5 章联动的复用。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>treemap.js</div>
+        <button class="copy">复制</button>
+<pre><code>const root = d3.hierarchy(budget)               // {name, value, children}
+  .sum(d =&gt; d.value)                            // 自底向上汇总数值
+  .sort((a, b) =&gt; b.value - a.value);           // 大块在前,布局更稳
+
+d3.treemap()
+  .size([W, H])
+  .paddingInner(2)
+  .tile(d3.treemapTileSquarify)                 // 近正方形切块
+  (root);
+
+svg.selectAll("rect")
+  .data(root.leaves())
+  .join("rect")
+  .attr("x", d =&gt; d.x0).attr("y", d =&gt; d.y0)    // 布局算好的坐标
+  .attr("width", d =&gt; d.x1 - d.x0)
+  .attr("height", d =&gt; d.y1 - d.y0)
+  .attr("fill", d =&gt; color(d.parent.data.name)); // 父分支定色</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 课程项目目录:缩进树 ↔ 矩形树图(点任一节点看路径)</h3>
+          <span class="spacer"></span>
+        </div>
+        <div class="demo-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" id="tv-grid">
+            <div>
+              <div style="font-size:12.5px;color:var(--text-3);margin-bottom:6px">视图 A · 缩进树(文本友好)</div>
+              <svg id="tv-tree" style="width:100%;border:1px solid var(--border);border-radius:10px;background:#fff"></svg>
+            </div>
+            <div>
+              <div style="font-size:12.5px;color:var(--text-3);margin-bottom:6px">视图 B · 矩形树图(面积 = 代码行数)</div>
+              <svg id="tv-map" viewBox="0 0 320 300" style="width:100%;border:1px solid var(--border);border-radius:10px"></svg>
+            </div>
+          </div>
+        </div>
+        <div class="demo-tip">提示:两个视图来自同一份数据——树图里每块面积与其"行数"严格成比例,一眼看出 index.html 是最大的文件。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 6.3 ================= -->
+    <section class="kp" id="kp3">
+      <div class="kp-head"><span class="kp-badge">KP 6.3</span><h2>组装仪表盘:让视图互相成全</h2></div>
+      <div class="kp-body">
+        <p>
+          仪表盘不是图表的堆砌,而是一个<strong>分层的信息系统</strong>:
+        </p>
+        <ul>
+          <li><strong>KPI 层</strong>:今天最重要的 3 个数字,一行大字,先给结论</li>
+          <li><strong>结构层</strong>:柱状图回答"哪类最大/最小"(比较)</li>
+          <strong>趋势层</strong>:折线图回答"随时间怎么走"(变化)
+          <li><strong>联动</strong>:一处刷新,处处刷新——所有视图读同一份状态</li>
+        </ul>
+        <div class="note">💡 布局口诀:<strong>结论在上,比较在中,细节在下;从左到右是时间,从上到下是从结论到证据。</strong></div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>dashboard.js</div>
+        <button class="copy">复制</button>
+<pre><code>async function refresh() {
+  const data = await fetch("/api/metrics").then(r =&gt; r.json());
+
+  // KPI:数字滚动过渡,变化的幅度用颜色标注
+  kpiTotal.transition().tween("text", () =&gt; tweenNum(old.total, data.total));
+  kpiDelta.text(fmtPct(data.total / old.total - 1)).attr("class", ...);
+
+  // 柱 & 线:所有视图重绘都带 600ms 过渡,保持节奏一致
+  bars.data(data.byCategory).transition().duration(600).attr(...);
+  line.datum(data.timeline).transition().duration(600).attr("d", ...);
+
+  old = data;      // 记住旧值:差值计算与补间起点都依赖它
+}
+setInterval(refresh, 5000);   // 轮询刷新;实时系统换 WebSocket</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 迷你仪表盘(KPI + 结构 + 趋势,一键刷新)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl"><button class="primary" id="db-refresh">🔄 拉取新数据</button></div>
+        </div>
+        <div class="demo-body" style="border:1px solid var(--border);border-radius:12px;padding:16px;background:#f9fafc">
+          <div class="dash-kpis" id="db-kpis"></div>
+          <svg id="db-bars" viewBox="0 0 640 180" style="width:100%"></svg>
+          <svg id="db-line" viewBox="0 0 640 150" style="width:100%;margin-top:10px"></svg>
+        </div>
+        <div class="demo-tip">提示:刷新时注意三件事同时发生——KPI 数字跳变并标出涨跌、柱子高度过渡、折线重画。同步的节奏感是"一个系统"而非"三张图"的关键。</div>
+      </div>
+    </section>
+
+    <div class="ch-pager">
+      <a href="ch2-2.html"><span class="dir">← 上一章</span><span class="ttl">第 5 章 · 交互进阶与动画</span></a>
+      <a class="next" href="ch3-1.html"><span class="dir">下一章 →</span><span class="ttl">第 7 章 · 其他可视化工具与库</span></a>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/main.js"></script>
+<script src="../assets/lesson.js"></script>
+<script>
+(function () {
+  const V = window.Vis;
+
+  /* ========== 演示 6.1:数据清洗 ========== */
+  const RAW = [
+    { id: "A001", name: "拿铁", price: "28", qty: "120" },
+    { id: "A002", name: "美式", price: "1,800", qty: "98" },      // 千分位
+    { id: "A003", name: "摩卡", price: "", qty: "45" },            // 缺失
+    { id: "A004", name: "抹茶", price: "32元", qty: "77" },        // 带单位
+    { id: "A005", name: "冷萃", price: "35", qty: "60" },
+    { id: "A006", name: "卡布", price: null, qty: "53" },          // null
+    { id: "A007", name: "澳白", price: "3oooo", qty: "41" },       // o 混入
+    { id: "A008", name: "馥芮白", price: "30", qty: "88" },
+  ];
+  const CLEANED = [
+    { id: "A001", name: "拿铁", price: "28", qty: "120" },
+    { id: "A002", name: "美式", price: "1800 → 截尾为 100", qty: "98" },
+    { id: "A003", name: "摩卡", price: "— 行删除(缺失)", qty: "45" },
+    { id: "A004", name: "抹茶", price: '32元 → 解析为 32', qty: "77" },
+    { id: "A005", name: "冷萃", price: "35", qty: "60" },
+    { id: "A006", name: "卡布", price: "— 行删除(null)", qty: "53" },
+    { id: "A007", name: "澳白", price: '3oooo → 300(修正 o→0)', qty: "41" },
+    { id: "A008", name: "馥芮白", price: "30", qty: "88" },
+  ];
+  const DIRTY_IDX = new Set([1, 2, 3, 5, 6]);
+  const clTable = document.getElementById("cl-table");
+  const clLog = document.getElementById("cl-log");
+
+  function renderRows(rows, phase) {
+    clTable.innerHTML = '<caption class="sr-only">咖啡销售原始数据及清洗诊断结果</caption>' +
+      '<thead><tr><th scope="col">ID</th><th scope="col">品名</th><th scope="col">单价(原始)</th><th scope="col">月销</th><th scope="col">诊断</th></tr></thead><tbody>' +
+      rows.map((r, i) => {
+        const dirty = DIRTY_IDX.has(i);
+        const cls = phase === "clean" ? (dirty ? (r.mark || "fixed") : "") : (dirty ? "bad" : "");
+        const diag = dirty ? (phase === "clean" ? "✓ 已处理" : r.diag) : "正常";
+        return `<tr class="${cls === "del" ? "bad" : cls}"><td>${r.id}</td><td>${r.name}</td><td>${r.price}</td><td>${r.qty}</td><td>${diag}</td></tr>`;
+      }).join("") + "</tbody>";
+  }
+  function dirtyTable() {
+    const rows = RAW.map((r, i) => ({ ...r, diag: DIRTY_IDX.has(i) ? ["千分位分隔符", "空值", "带单位", "null", "字母混入"][[1, 2, 3, 5, 6].indexOf(i)] : "正常", mark: "" }));
+    renderRows(rows, "dirty");
+    clLog.textContent = "清洗日志将显示在这里……";
+  }
+  document.getElementById("cl-run").addEventListener("click", () => {
+    renderRows(CLEANED.map((r) => ({ ...r, mark: "fixed" })), "clean");
+    clLog.innerHTML = [
+      "[filter] A003 price 为空 → 删除该行",
+      "[filter] A006 price 为 null → 删除该行",
+      "[parse]  A002 &quot;1,800&quot; → 1800",
+      "[parse]  A004 &quot;32元&quot; → 32",
+      "[parse]  A007 &quot;3oooo&quot; → 300(疑似录入错误,人工复核)",
+      "[clip]   A002 1800 &gt; 10000 阈值?否,保留(演示中标记为截尾示意)",
+      "[done]   8 行 → 8 行(2 行数据修正保留展示),数值列全部可参与计算",
+    ].join("<br>");
+  });
+  document.getElementById("cl-reset").addEventListener("click", dirtyTable);
+  dirtyTable();
+
+  /* ========== 演示 6.2:缩进树 + treemap ========== */
+  const TREE = {
+    name: "vis-project/", children: [
+      { name: "index.html", value: 420 },
+      { name: "assets/", children: [
+        { name: "style.css", value: 310 },
+        { name: "main.js", value: 180 },
+      ]},
+      { name: "chapters/", children: [
+        { name: "ch1-1.html", value: 260 },
+        { name: "ch1-2.html", value: 240 },
+        { name: "ch1-3.html", value: 290 },
+        { name: "ch2-1.html", value: 210 },
+      ]},
+      { name: "data/", children: [
+        { name: "sales.csv", value: 60 },
+        { name: "temps.json", value: 45 },
+      ]},
+      { name: "README.md", value: 55 },
+    ],
+  };
+  // 展平为行(深度, 名称, 值, 是否叶子, 路径)
+  const rows = [];
+  (function walk(n, depth, path) {
+    rows.push({ ...n, depth, path: path + "/" + n.name, isLeaf: !n.children });
+    if (n.children) n.children.forEach((c) => walk(c, depth + 1, path + "/" + n.name));
+  })(TREE, 0, "");
+  const leafRows = rows.filter((r) => r.isLeaf);
+  const totalV = leafRows.reduce((s, r) => s + r.value, 0);
+
+  const tvTree = document.getElementById("tv-tree");
+  const tvMap = document.getElementById("tv-map");
+  const rowH = 30;
+  tvTree.setAttribute("viewBox", `0 0 320 ${rows.length * rowH + 10}`);
+  // 高度随宽度按宽高比自适应,不强制固定值(避免内容被压扁)
+
+  function pathOf(row) { return row.path; }
+  function highlight(selPath) {
+    // 树侧:高亮祖先链
+    const isAncestor = (p) => selPath && selPath.startsWith(p);
+    tvTree.querySelectorAll(".tree-row").forEach((g) => {
+      const p = g.dataset.path;
+      const on = selPath && (p === selPath || isAncestor(p) || selPath.startsWith(p));
+      g.classList.toggle("hl", on);
+    });
+    // 图侧:非选中分支变暗
+    tvMap.querySelectorAll(".tm-rect").forEach((r) => {
+      const p = r.dataset.path;
+      const on = selPath && (p === selPath || p.startsWith(selPath) || selPath.startsWith(p));
+      r.setAttribute("opacity", selPath ? (on ? 1 : 0.25) : 1);
+    });
+  }
+  rows.forEach((r, i) => {
+    const g = V.svgEl("g", { class: "tree-row", "data-path": r.path });
+    g.appendChild(V.svgEl("rect", { x: 0, y: i * rowH, width: 320, height: rowH, fill: "transparent" }));
+    if (r.depth > 0) {
+      g.appendChild(V.svgEl("line", {
+        x1: (r.depth - 1) * 16 + 8, x2: r.depth * 16, y1: i * rowH + rowH / 2, y2: i * rowH + rowH / 2,
+        stroke: "#c3cad6",
+      }));
+    }
+    const t = V.svgEl("text", { x: 6 + r.depth * 16, y: i * rowH + 20, "font-size": 12, fill: r.isLeaf ? "#5a6472" : "#1e2530", "font-weight": r.isLeaf ? 400 : 600 });
+    t.textContent = (r.isLeaf ? "" : "📁 ") + r.name;
+    g.appendChild(t);
+    if (r.isLeaf) {
+      const vt = V.svgEl("text", { x: 314, y: i * rowH + 20, "font-size": 10.5, fill: "#8a94a3", "text-anchor": "end", "font-family": "var(--mono)" });
+      vt.textContent = r.value + " 行";
+      g.appendChild(vt);
+    }
+    g.addEventListener("click", () => highlight(r.isLeaf ? r.path : null));
+    tvTree.appendChild(g);
+  });
+
+  // 简化 squarify:二分递归切分(最长边方向)
+  function binaryTreemap(items, x0, y0, x1, y1, out) {
+    if (items.length === 0) return;
+    if (items.length === 1) { out.push({ ...items[0], x0, y0, x1, y1 }); return; }
+    const total = items.reduce((s, it) => s + it.value, 0);
+    // 前缀和找最接近一半的切分点
+    let acc = 0, bestI = 0, bestDiff = Infinity;
+    for (let i = 0; i < items.length - 1; i++) {
+      acc += items[i].value;
+      const diff = Math.abs(acc - total / 2);
+      if (diff < bestDiff) { bestDiff = diff; bestI = i; }
+    }
+    const left = items.slice(0, bestI + 1), right = items.slice(bestI + 1);
+    const frac = left.reduce((s, it) => s + it.value, 0) / total;
+    const w = x1 - x0, h = y1 - y0;
+    if (w >= h) {
+      binaryTreemap(left, x0, y0, x0 + w * frac, y1, out);
+      binaryTreemap(right, x0 + w * frac, y0, x1, y1, out);
+    } else {
+      binaryTreemap(left, x0, y0, x1, y0 + h * frac, out);
+      binaryTreemap(right, x0, y0 + h * frac, x1, y1, out);
+    }
+  }
+  const rects = [];
+  binaryTreemap(leafRows, 0, 0, 320, 300, rects);
+  const parentColor = (p) => {
+    if (p.includes("chapters")) return "#2f6fed";
+    if (p.includes("assets")) return "#0ea5a5";
+    if (p.includes("data")) return "#f59e0b";
+    if (p.includes("index")) return "#8b5cf6";
+    return "#64748b";
+  };
+  rects.forEach((r) => {
+    const w = r.x1 - r.x0, h = r.y1 - r.y0;
+    const rect = V.svgEl("rect", {
+      class: "tm-rect", "data-path": r.path,
+      x: r.x0 + 1, y: r.y0 + 1, width: Math.max(0, w - 2), height: Math.max(0, h - 2),
+      rx: 5, fill: parentColor(r.path), opacity: .85,
+    });
+    rect.addEventListener("click", () => highlight(r.path));
+    tvMap.appendChild(rect);
+    if (w > 64 && h > 30) {
+      const t = V.svgEl("text", { x: r.x0 + w / 2, y: r.y0 + 18, "text-anchor": "middle", "font-size": 10, fill: "#fff", "pointer-events": "none" });
+      t.textContent = r.name;
+      tvMap.appendChild(t);
+      const t2 = V.svgEl("text", { x: r.x0 + w / 2, y: r.y0 + 31, "text-anchor": "middle", "font-size": 9, fill: "rgba(255,255,255,.8)", "font-family": "var(--mono)", "pointer-events": "none" });
+      t2.textContent = r.value + "行";
+      tvMap.appendChild(t2);
+    }
+  });
+
+  /* ========== 演示 6.3:迷你仪表盘 ========== */
+  const dbKpis = document.getElementById("db-kpis");
+  const dbBars = document.getElementById("db-bars");
+  const dbLine = document.getElementById("db-line");
+  const CATS = ["饮品", "餐食", "周边", "联名"];
+  let dbOld = null;
+
+  function dbData() {
+    return {
+      byCat: CATS.map((c) => ({ c, v: Math.round(40 + Math.random() * 160) })),
+      timeline: Array.from({ length: 12 }, () => Math.round(60 + Math.random() * 120)),
+      total: 0,
+    };
+  }
+  function dbRender(d) {
+    d.total = d.byCat.reduce((s, x) => s + x.v, 0);
+    const avg = Math.round(d.total / d.byCat.length);
+    const best = d.byCat.reduce((a, b) => (a.v > b.v ? a : b));
+    // KPI
+    const kpis = [
+      { l: "本月总销量(件)", v: d.total.toLocaleString(), delta: dbOld ? d.total - dbOld.total : null },
+      { l: "品类平均(件)", v: avg.toLocaleString(), delta: null },
+      { l: "销量冠军", v: best.c, delta: null, sub: best.v + " 件" },
+    ];
+    dbKpis.innerHTML = kpis.map((k) => `
+      <div class="dash-kpi">
+        <div class="l">${k.l}</div>
+        <div class="v">${k.v}</div>
+        ${k.delta != null ? `<div class="d ${k.delta >= 0 ? "up" : "down"}">${k.delta >= 0 ? "▲ +" : "▼ "}${k.delta} vs 上次</div>` : (k.sub ? `<div class="d" style="color:var(--text-3)">${k.sub}</div>` : "")}
+      </div>`).join("");
+    // 柱状图
+    const W = 640, H = 180, PB = 24, PT = 20;
+    const max = Math.max(...d.byCat.map((x) => x.v)) * 1.2;
+    dbBars.innerHTML = "";
+    for (let i = 0; i <= 3; i++) {
+      const yy = PT + (H - PB - PT) * (i / 3);
+      dbBars.appendChild(V.svgEl("line", { x1: 36, x2: W - 10, y1: yy, y2: yy, stroke: "#e9edf3" }));
+    }
+    d.byCat.forEach((x, i) => {
+      const bw = (W - 60) / d.byCat.length - 20;
+      const bx = 40 + i * ((W - 60) / d.byCat.length) + 10;
+      const bh = (x.v / max) * (H - PB - PT);
+      const r = V.svgEl("rect", { x: bx, y: H - PB - bh, width: bw, height: bh, rx: 5, fill: V.palette[i], opacity: .9 });
+      r.style.transition = "all .6s cubic-bezier(.4,0,.2,1)";
+      dbBars.appendChild(r);
+      const t = V.svgEl("text", { x: bx + bw / 2, y: H - 8, "text-anchor": "middle", "font-size": 11.5, fill: "#5a6472" });
+      t.textContent = x.c; dbBars.appendChild(t);
+      const t2 = V.svgEl("text", { x: bx + bw / 2, y: H - PB - bh - 5, "text-anchor": "middle", "font-size": 10.5, fill: "#8a94a3", "font-family": "var(--mono)" });
+      t2.textContent = x.v; dbBars.appendChild(t2);
+    });
+    // 折线图
+    const H2 = 150, PB2 = 20, PT2 = 14;
+    const ts = d.timeline;
+    const mn = Math.min(...ts) - 10, mx = Math.max(...ts) + 10;
+    const xs = V.scaleLinear(0, 11, 30, W - 16);
+    const ys = V.scaleLinear(mn, mx, H2 - PB2, PT2);
+    dbLine.innerHTML = "";
+    for (let i = 0; i <= 3; i++) {
+      const yy = PT2 + (H2 - PB2 - PT2) * (i / 3);
+      dbLine.appendChild(V.svgEl("line", { x1: 30, x2: W - 16, y1: yy, y2: yy, stroke: "#e9edf3" }));
+    }
+    const dPath = "M " + ts.map((v, i) => `${xs(i)},${ys(v)}`).join(" L ");
+    dbLine.appendChild(V.svgEl("path", { d: dPath, fill: "none", stroke: "#0ea5a5", "stroke-width": 2.5, "stroke-linecap": "round" }));
+    ts.forEach((v, i) => dbLine.appendChild(V.svgEl("circle", { cx: xs(i), cy: ys(v), r: 2.5, fill: "#0ea5a5" })));
+    const cap = V.svgEl("text", { x: 30, y: 10, "font-size": 11, fill: "#8a94a3" });
+    cap.textContent = "近 12 周销量趋势"; dbLine.appendChild(cap);
+    dbOld = JSON.parse(JSON.stringify(d));
+  }
+  document.getElementById("db-refresh").addEventListener("click", () => dbRender(dbData()));
+  dbRender(dbData());
+})();
+</script>
+</body>
+</html>

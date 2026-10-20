@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 5 章 · 交互进阶与动画 — 可视化导论</title>
+<meta name="description" content="学习数据过渡、拖拽、刷选与多视图联动等可视化交互方法。">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+  .t-bar { fill: #2f6fed; transition: y .6s cubic-bezier(.4,0,.2,1), height .6s cubic-bezier(.4,0,.2,1); rx: 4px; }
+  .drag-dot { cursor: grab; transition: r .15s; }
+  .drag-dot:active { cursor: grabbing; }
+  .brush-box { fill: rgba(47,111,237,.12); stroke: #2f6fed; stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .chart-tip { position: absolute; pointer-events: none; background: #1e2530; color: #fff; font-size: 12.5px;
+    padding: 5px 10px; border-radius: 7px; transform: translate(-50%, calc(-100% - 8px)); white-space: nowrap; z-index: 5; opacity: 0; }
+  .demo-relative { position: relative; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="../index.html"><span class="brand-mark">VIS</span><span>可视化导论</span></a>
+    <nav><a href="../index.html#chapters">全部章节</a></nav>
+  </div>
+</header>
+
+<div class="ch-layout">
+
+  <aside class="toc">
+    <a class="toc-back" href="../index.html">← 返回门户</a>
+    <div class="toc-ch">第 5 章 · 交互篇</div>
+    <a href="#kp1">5.1 过渡动画 transition</a>
+    <a href="#kp2">5.2 事件与拖拽</a>
+    <a href="#kp3">5.3 刷选与联动</a>
+  </aside>
+
+  <main>
+    <div class="ch-hero">
+      <span class="kicker">第 5 章 · 交互篇 · ★★★</span>
+      <h1>交互进阶与动画</h1>
+      <p class="lead">
+        静态图回答一个问题,交互式可视化让读者<strong>不断提出新问题</strong>。
+        本章三件套——过渡、拖拽、刷选——是几乎所有高级交互的原子能力。
+        一条铁律贯穿始终:<strong>动画和交互必须服务于理解数据,炫技即噪音</strong>。
+      </p>
+      <div class="ch-tags"><span>transition</span><span>d3.drag</span><span>d3.brush</span><span>联动</span><span>动画原则</span></div>
+    </div>
+
+    <div class="objectives">
+      <h2>🎯 学习目标</h2>
+      <ul>
+        <li>会用 <code>transition().duration().delay()</code> 制作属性补间动画</li>
+        <li>掌握指针事件(pointerdown/move/up)实现自定义拖拽,理解 pointer 事件优于 mouse 事件</li>
+        <li>实现"刷选高亮 + 下方直方图联动"的经典组合交互</li>
+        <li>建立动画时长与缓动的设计直觉(250–750ms,ease-in-out)</li>
+      </ul>
+    </div>
+
+    <!-- ================= KP 5.1 ================= -->
+    <section class="kp" id="kp1">
+      <div class="kp-head"><span class="kp-badge">KP 5.1</span><h2>过渡动画:让数据变化可追溯</h2></div>
+      <div class="kp-body">
+        <p>
+          数据从 A 状态变为 B 状态,若直接替换,读者看到的是"两张图";
+          加上<strong>过渡(transition)</strong>,读者看到的是"同一批元素的移动"——
+          哪根柱子变长了、谁超过了谁,变化过程本身成为信息。
+        </p>
+        <ul>
+          <li><code>duration(ms)</code>:一次完整过渡时长,<strong>250~750ms</strong> 是公认舒适区</li>
+          <li><code>delay(ms)</code>:延迟启动;按索引递增 <code>delay(i =&gt; i * 30)</code> 产生"波浪式"错落感</li>
+          <li>默认缓动 <code>cubic-in-out</code>(慢-快-慢)最自然;线性动画只适合进度条类场景</li>
+          <li>过渡期间<strong>属性被锁定</strong>,再次触发会排队——数据高频更新时要 <code>.interrupt()</code></li>
+        </ul>
+        <div class="note">💡 判断标准:读者能否从动画中读出"谁变了、怎么变的"?读不出就删掉。装饰性动画一律属于噪音。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>transition.js</div>
+        <button class="copy">复制</button>
+<pre><code>svg.selectAll("rect")
+  .data(newData, d =&gt; d.key)          // 按 key 配对,元素有身份
+  .join("rect")
+  .transition()                        // 之后的属性变化全部做补间
+  .duration(600)                       // 600ms,舒适区中段
+  .delay((d, i) =&gt; i * 40)             // 逐根错落启动
+  .ease(d3.easeCubicInOut)             // 慢-快-慢
+  .attr("y", d =&gt; y(d.value))          // 旧值 → 新值自动补间
+  .attr("height", d =&gt; y(0) - y(d.value));
+
+// 多段过渡:先移动,再变色
+rect.transition().duration(400).attr("y", newY)
+    .transition().duration(200).style("fill", "crimson");</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 有无过渡的对比(调时长感受差异)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <label for="t-dur">时长 <b id="t-dur-v" style="color:var(--accent)">600</b>ms</label>
+            <input type="range" id="t-dur" min="0" max="1500" step="50" value="600">
+            <button class="primary" id="t-newdata">🎲 换数据</button>
+          </div>
+        </div>
+        <div class="demo-body">
+          <svg id="t-svg" viewBox="0 0 640 220" style="width:100%"></svg>
+        </div>
+        <div class="demo-tip">提示:把时长拖到 0 再换数据——柱子瞬移,你无法说出"哪根变了";拖回 600ms,变化过程一目了然。这就是过渡的价值。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 5.2 ================= -->
+    <section class="kp" id="kp2">
+      <div class="kp-head"><span class="kp-badge">KP 5.2</span><h2>事件与拖拽:把控制权交给用户</h2></div>
+      <div class="kp-body">
+        <p>
+          D3 的 <code>.on()</code> 绑定事件,和原生 DOM 一致但可直接链在选择集上。
+          <code>d3.drag()</code> 把 pointerdown / move / up 三件套封装成"拖拽行为",
+          挂到元素上即获得拖拽能力,拖拽期间自动处理坐标换算。
+        </p>
+        <ul>
+          <li>统一用 <strong>pointer 系事件</strong>(pointerdown/move/up):鼠标、触屏、手写笔一套通吃,已被各浏览器支持</li>
+          <li>拖拽时要"抓住"元素:<code>on("start")</code> 记录起点偏移,避免元素"跳"到指针位置</li>
+          <li>SVG 坐标 ≠ 屏幕坐标,用 <code>d3.pointer(event, svg)</code> 换算;缩放视图下尤其如此</li>
+          <li>拖拽后记得做<strong>边界约束</strong>,别让元素被拖出画布找不回来</li>
+        </ul>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>drag.js</div>
+        <button class="copy">复制</button>
+<pre><code>const drag = d3.drag()
+  .on("start", (event, d) =&gt; {
+    d.dx = event.x - d.x;              // 记录指针与圆心的偏移
+    d.dy = event.y - d.y;
+  })
+  .on("drag", (event, d) =&gt; {
+    d.x = event.x - d.dx;              // 应用偏移,圆不"跳"
+    d.y = event.y - d.dy;
+    d.x = Math.max(R, Math.min(W - R, d.x));   // 边界约束
+    d.y = Math.max(R, Math.min(H - R, d.y));
+    d3.select(this).attr("cx", d.x).attr("cy", d.y);
+  });
+
+svg.selectAll("circle").call(drag);    // 一行挂载拖拽行为</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 拖拽聚类沙盒(把点拖到属于它的组里)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <button class="primary" id="dr-check">✓ 判定归属</button>
+            <button id="dr-reset">重置</button>
+            <span style="font-size:12px;color:var(--text-3)" id="dr-info">拖动彩色圆点,放进同色圆环内</span>
+          </div>
+        </div>
+        <div class="demo-body demo-relative" id="dr-wrap">
+          <svg id="dr-svg" viewBox="0 0 640 280" style="width:100%;border-radius:10px;background:#fbfcfe;border:1px solid var(--border)"></svg>
+          <div class="chart-tip" id="dr-tip"></div>
+        </div>
+        <div class="demo-tip">提示:点按住即拖,悬停显示坐标。点「判定归属」看每个点是否落在同色圆环里——精确的 pointer 坐标换算是这一切的基础。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 5.3 ================= -->
+    <section class="kp" id="kp3">
+      <div class="kp-head"><span class="kp-badge">KP 5.3</span><h2>刷选与联动:一图提问,众图回答</h2></div>
+      <div class="kp-body">
+        <p>
+          刷(brush)是"用鼠标画一个框"的选择交互。<code>d3.brush()</code> 提供框选与移动,
+          真正的价值在于<strong>联动</strong>:框住的点在散点图里高亮,
+          同时下方直方图只统计框内样本——用户的一次动作,所有视图同时响应。
+        </p>
+        <ul>
+          <li>刷选内 = 前景(高亮),刷选外 = 背景(变暗),<strong>对比度即答案</strong></li>
+          <li>联动本质是一个状态(<code>selectionSet</code>)广播给所有视图,视图各自重绘</li>
+          <li>点击空白处清空刷选;按住刷框可拖动微调——这些细节决定手感</li>
+          <li>联动视图不宜超过 3~4 个,响应延迟超过 100ms 联动感即被破坏</li>
+        </ul>
+        <div class="note">💡 刷选 + 联动是"探索式分析"的核心交互,Tableau、Observable、各大 BI 工具的"筛选器"皆源于此模式。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>brush-linked.js</div>
+        <button class="copy">复制</button>
+<pre><code>const brush = d3.brush()
+  .extent([[0, 0], [W, H]])
+  .on("start brush end", ({ selection }) =&gt; {
+    // selection 为 null 表示清空;否则是 [[x0,y0],[x1,y1]]
+    const selected = selection
+      ? points.filter(([x, y]) =&gt;
+          x &gt;= selection[0][0] &amp;&amp; x &lt;= selection[1][0] &amp;&amp;
+          y &gt;= selection[0][1] &amp;&amp; y &lt;= selection[1][1])
+      : points;
+
+    // 视图 1:散点 —— 命中高亮,未命中变暗
+    dots.attr("opacity", d =&gt; isSelected(d) ? 0.9 : 0.08);
+
+    // 视图 2:直方图 —— 只统计选中样本
+    hist.data(bin(selected)).attr("y", ...).attr("height", ...);
+
+    counter.text(selected.length + " / " + points.length);   // 计数反馈
+  });
+
+svg.call(brush);</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 刷选散点 → 直方图联动(在图上拖一个框)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <span style="font-size:12.5px;color:var(--accent);font-weight:600" id="br-count">未选择 · 共 120 点</span>
+            <button id="br-clear">清除刷选</button>
+          </div>
+        </div>
+        <div class="demo-body">
+          <svg id="br-svg" viewBox="0 0 640 360" style="width:100%;border-radius:10px;border:1px solid var(--border);background:#fbfcfe"></svg>
+        </div>
+        <div class="demo-tip">提示:在散点区按住拖出矩形(松开即定),框住的点保持亮色,下方直方图立即只统计框内样本;点击空白处清除。</div>
+      </div>
+    </section>
+
+    <div class="ch-pager">
+      <a href="ch2-1.html"><span class="dir">← 上一章</span><span class="ttl">第 4 章 · Canvas 绘图基础</span></a>
+      <a class="next" href="ch2-3.html"><span class="dir">下一章 →</span><span class="ttl">第 6 章 · D3 可视化实践</span></a>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/main.js"></script>
+<script src="../assets/lesson.js"></script>
+<script>
+(function () {
+  const V = window.Vis;
+
+  /* ========== 演示 5.1:过渡对比 ========== */
+  const tSvg = document.getElementById("t-svg");
+  const tDur = document.getElementById("t-dur");
+  const tDurV = document.getElementById("t-dur-v");
+  const W = 640, H = 220, PB = 30, PT = 24;
+  const KEYS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+  let tData = KEYS.map((k) => ({ k, v: 20 + Math.random() * 70 }));
+  const tRects = [];
+
+  // 初始化:静态创建元素(模拟 join 后的 update 集)
+  const bw = (W - 40) / KEYS.length - 14;
+  const yOf = (v) => H - PB - (v / 100) * (H - PB - PT);
+  KEYS.forEach((k, i) => {
+    const d = tData[i];
+    const x = 24 + i * ((W - 40) / KEYS.length) + 7;
+    const r = V.svgEl("rect", { class: "t-bar", x, y: yOf(d.v), width: bw, height: H - PB - yOf(d.v), rx: 4 });
+    const lb = V.svgEl("text", { x: x + bw / 2, y: H - 10, "text-anchor": "middle", "font-size": 12, fill: "#8a94a3" });
+    lb.textContent = k;
+    const vb = V.svgEl("text", { x: x + bw / 2, y: yOf(d.v) - 6, "text-anchor": "middle", "font-size": 11, fill: "#5a6472", "font-family": "var(--mono)" });
+    vb.textContent = Math.round(d.v);
+    tSvg.appendChild(r); tSvg.appendChild(lb); tSvg.appendChild(vb);
+    tRects.push({ r, vb });
+  });
+  tDur.addEventListener("input", () => (tDurV.textContent = tDur.value));
+  document.getElementById("t-newdata").addEventListener("click", () => {
+    const dur = +tDur.value;
+    tRects.forEach((o) => {
+      o.r.style.transitionDuration = dur + "ms";
+      o.r.style.transitionDelay = (dur > 0 ? Math.random() * 120 : 0) + "ms";
+      o.vb.style.transition = "none";
+    });
+    tData.forEach((d) => (d.v = 20 + Math.random() * 70));
+    tRects.forEach((o, i) => {
+      const d = tData[i];
+      o.r.setAttribute("y", yOf(d.v));
+      o.r.setAttribute("height", H - PB - yOf(d.v));
+      o.vb.setAttribute("y", yOf(d.v) - 6);
+      o.vb.textContent = Math.round(d.v);
+    });
+  });
+
+  /* ========== 演示 5.2:拖拽聚类沙盒 ========== */
+  const drSvg = document.getElementById("dr-svg");
+  const drTip = document.getElementById("dr-tip");
+  const drWrap = document.getElementById("dr-wrap");
+  const drInfo = document.getElementById("dr-info");
+  const DRW = 640, DRH = 280;
+  const RINGS = [
+    { x: 120, y: 140, color: "#2f6fed" }, { x: 320, y: 140, color: "#f59e0b" }, { x: 520, y: 140, color: "#0ea5a5" },
+  ];
+  let drDots = [];
+
+  function drBuild() {
+    drSvg.innerHTML = "";
+    // 三个目标圆环
+    RINGS.forEach((ring) => {
+      drSvg.appendChild(V.svgEl("circle", { cx: ring.x, cy: ring.y, r: 56, fill: "none", stroke: ring.color, "stroke-width": 2, "stroke-dasharray": "6 5", opacity: .8 }));
+      drSvg.appendChild(V.svgEl("circle", { cx: ring.x, cy: ring.y, r: 50, fill: ring.color, opacity: .07 }));
+    });
+    // 9 个可拖拽圆点(初始散落)
+    drDots = [];
+    for (let i = 0; i < 9; i++) {
+      const g = i % 3;
+      drDots.push({
+        x: 60 + Math.random() * 520, y: 210 + Math.random() * 50,
+        g, color: RINGS[g].color, r: 11,
+      });
+    }
+    drDots.forEach((d) => {
+      const c = V.svgEl("circle", { class: "drag-dot", cx: d.x, cy: d.y, r: d.r, fill: d.color, stroke: "#fff", "stroke-width": 2 });
+      const makeDrag = (ev) => {
+        ev.preventDefault();
+        const svgRect = drSvg.getBoundingClientRect();
+        const toSvg = (e) => [
+          ((e.clientX - svgRect.left) / svgRect.width) * DRW,
+          ((e.clientY - svgRect.top) / svgRect.height) * DRH,
+        ];
+        const [px, py] = toSvg(ev);
+        const offX = d.x - px, offY = d.y - py;
+        const move = (e) => {
+          const [mx, my] = toSvg(e);
+          d.x = Math.max(d.r, Math.min(DRW - d.r, mx + offX));
+          d.y = Math.max(d.r, Math.min(DRH - d.r, my + offY));
+          c.setAttribute("cx", d.x); c.setAttribute("cy", d.y);
+        };
+        const up = () => {
+          window.removeEventListener("pointermove", move);
+          window.removeEventListener("pointerup", up);
+        };
+        window.addEventListener("pointermove", move);
+        window.addEventListener("pointerup", up);
+      };
+      c.addEventListener("pointerdown", makeDrag);
+      c.addEventListener("pointermove", (e) => {
+        drTip.style.opacity = 1;
+        drTip.style.left = e.clientX - drWrap.getBoundingClientRect().left + "px";
+        drTip.style.top = e.clientY - drWrap.getBoundingClientRect().top + "px";
+        drTip.textContent = `(${d.x.toFixed(0)}, ${d.y.toFixed(0)})`;
+      });
+      c.addEventListener("pointerleave", () => (drTip.style.opacity = 0));
+      drSvg.appendChild(c);
+    });
+    drInfo.textContent = "拖动彩色圆点,放进同色圆环内";
+  }
+  document.getElementById("dr-reset").addEventListener("click", drBuild);
+  document.getElementById("dr-check").addEventListener("click", () => {
+    let ok = 0;
+    drDots.forEach((d) => {
+      const ring = RINGS[d.g];
+      const inside = Math.hypot(d.x - ring.x, d.y - ring.y) < 50;
+      if (inside) ok++;
+      // 打勾/打叉标记
+      const mark = V.svgEl("text", { x: d.x, y: d.y + 5, "text-anchor": "middle", "font-size": 13, "font-weight": 700, fill: "#fff" });
+      mark.textContent = inside ? "✓" : "✗";
+      drSvg.appendChild(mark);
+    });
+    drInfo.textContent = `判定完成:${ok} / ${drDots.length} 归位正确`;
+  });
+  drBuild();
+
+  /* ========== 演示 5.3:刷选联动 ========== */
+  const brSvg = document.getElementById("br-svg");
+  const brCount = document.getElementById("br-count");
+  const BW = 640, BH = 360, PL = 52, SCHAT = 220, HISTY = 250, HISTH = 90;
+  let brPts = [];
+
+  function brSample() {
+    let s = 11;
+    const rnd = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
+    brPts = [];
+    // 两个簇 + 少量离群
+    for (let i = 0; i < 70; i++) brPts.push({ x: 0.18 + rnd() * 0.25, y: 0.15 + rnd() * 0.3 });
+    for (let i = 0; i < 40; i++) brPts.push({ x: 0.55 + rnd() * 0.3, y: 0.5 + rnd() * 0.35 });
+    for (let i = 0; i < 10; i++) brPts.push({ x: rnd(), y: rnd() });
+  }
+  const px = (u) => PL + u * (BW - PL - 20);
+  const py = (u) => 16 + u * (SCHAT - 30);
+
+  function brRender(selBox) {
+    brSvg.innerHTML = "";
+    const inside = (p) => !selBox || (px(p.x) >= selBox[0] && px(p.x) <= selBox[2] && py(p.y) >= selBox[1] && py(p.y) <= selBox[3]);
+    const sel = brPts.filter(inside);
+    // 散点
+    brPts.forEach((p) => {
+      const on = inside(p);
+      brSvg.appendChild(V.svgEl("circle", {
+        cx: px(p.x), cy: py(p.y), r: on ? 5 : 4,
+        fill: on ? "#2f6fed" : "#b6c2d6", opacity: on ? 0.85 : 0.35,
+      }));
+    });
+    // 轴
+    const xl = V.svgEl("text", { x: (PL + BW - 20) / 2, y: SCHAT + 2, "text-anchor": "middle", "font-size": 11.5, fill: "#8a94a3" });
+    xl.textContent = "促销投入指数 →"; brSvg.appendChild(xl);
+    // 直方图:全量(灰) + 选中(蓝)
+    const NB = 16, binW = (BW - PL - 20) / NB;
+    const allBins = new Array(NB).fill(0), selBins = new Array(NB).fill(0);
+    brPts.forEach((p) => { allBins[Math.min(NB - 1, Math.floor(p.x * NB))]++; });
+    sel.forEach((p) => { selBins[Math.min(NB - 1, Math.floor(p.x * NB))]++; });
+    const maxB = Math.max(...allBins);
+    const histTitle = V.svgEl("text", { x: PL, y: HISTY - 12, "font-size": 12, fill: "#5a6472", "font-weight": 600 });
+    histTitle.textContent = "↓ 联动视图:促销投入分布(灰 = 全部,蓝 = 刷选内)";
+    brSvg.appendChild(histTitle);
+    for (let i = 0; i < NB; i++) {
+      const hb = (allBins[i] / maxB) * HISTH, sb = (selBins[i] / maxB) * HISTH;
+      const x = PL + i * binW;
+      brSvg.appendChild(V.svgEl("rect", { x: x + 1, y: HISTY + HISTH - hb, width: binW - 2, height: hb, fill: "#dde3ec", rx: 2 }));
+      if (sb > 0) brSvg.appendChild(V.svgEl("rect", { x: x + 1, y: HISTY + HISTH - sb, width: binW - 2, height: sb, fill: "#2f6fed", rx: 2, opacity: .9 }));
+    }
+    const hbAxis = V.svgEl("line", { x1: PL, x2: BW - 20, y1: HISTY + HISTH, y2: HISTY + HISTH, stroke: "#c3cad6" });
+    brSvg.appendChild(hbAxis);
+    // 刷选框
+    if (selBox) {
+      brSvg.appendChild(V.svgEl("rect", {
+        class: "brush-box",
+        x: selBox[0], y: selBox[1], width: selBox[2] - selBox[0], height: selBox[3] - selBox[1],
+      }));
+    }
+    brCount.textContent = selBox ? `已选 ${sel.length} / ${brPts.length} 点` : `未选择 · 共 ${brPts.length} 点`;
+  }
+
+  // 刷选交互
+  let brushing = false, bx0 = 0, by0 = 0, box = null;
+  const toSvgXY = (e) => {
+    const r = brSvg.getBoundingClientRect();
+    return [((e.clientX - r.left) / r.width) * BW, ((e.clientY - r.top) / r.height) * BH];
+  };
+  brSvg.style.cursor = "crosshair";
+  brSvg.addEventListener("pointerdown", (e) => {
+    const [x, y] = toSvgXY(e);
+    if (y > SCHAT + 8) return;                    // 只在散点区响应
+    brushing = true; bx0 = x; by0 = y; box = null;
+    brSvg.setPointerCapture(e.pointerId);
+  });
+  brSvg.addEventListener("pointermove", (e) => {
+    if (!brushing) return;
+    const [x, y] = toSvgXY(e);
+    box = [Math.min(bx0, x), Math.min(by0, y), Math.max(bx0, x), Math.max(by0, y)];
+    brRender(box);
+  });
+  brSvg.addEventListener("pointerup", () => { brushing = false; });
+  brSvg.addEventListener("click", (e) => {
+    // 点击空白(未产生有效框)清空
+    if (!box || (box[2] - box[0] < 6 && box[3] - box[1] < 6)) { box = null; brRender(null); }
+  });
+  document.getElementById("br-clear").addEventListener("click", () => { box = null; brRender(null); });
+
+  brSample();
+  brRender(null);
+})();
+</script>
+</body>
+</html>

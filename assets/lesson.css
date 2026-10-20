@@ -1,0 +1,425 @@
+/* ============================================================
+   课堂增强样式
+   —— 排版放大仅在 html.teach(课堂模式)下生效,不影响自学浏览
+   ============================================================ */
+
+/* ---------- 课堂模式:投屏可读性(字号 + 对比度) ---------- */
+html.teach { --text:#141821; --text-2:#3d4654; --text-3:#5c6675; --border:#c9d1dd; }
+html.teach body { font-size: 17.5px; padding-bottom: 88px; }
+html.teach .kp { margin-top: 76px; scroll-margin-top: 96px; }
+html.teach .kp-body p { font-size: 17px; }
+html.teach .kp-body li { font-size: 16.5px; }
+html.teach .kp-head h2 { font-size: 26px; }
+html.teach .note { font-size: 16px; }
+html.teach .objectives li { font-size: 15.5px; }
+html.teach .codeblock pre { font-size: 14.5px; }
+html.teach .demo-head h3 { font-size: 15.5px; }
+html.teach .demo-ctrl button, html.teach .demo-ctrl select,
+html.teach .demo-ctrl input, html.teach .demo-ctrl label { font-size: 13.5px; }
+html.teach .demo-tip { font-size: 14.5px; }
+html.teach .toc a { font-size: 14.5px; }
+html.teach .ch-hero h1 { font-size: 36px; }
+html.teach footer { display: none; }
+
+/* 投屏字号三档:默认 / 大 / 特大(Z 循环) */
+html.teach.teach-size-1 body { font-size: 19px; }
+html.teach.teach-size-1 .kp-body p { font-size: 18.5px; }
+html.teach.teach-size-1 .kp-body li { font-size: 18px; }
+html.teach.teach-size-1 .kp-head h2 { font-size: 29px; }
+html.teach.teach-size-1 .codeblock pre { font-size: 15.5px; }
+html.teach.teach-size-2 body { font-size: 20.5px; }
+html.teach.teach-size-2 .kp-body p { font-size: 20px; }
+html.teach.teach-size-2 .kp-body li { font-size: 19px; }
+html.teach.teach-size-2 .kp-head h2 { font-size: 32px; }
+html.teach.teach-size-2 .codeblock pre { font-size: 17px; }
+
+/* ---------- 当前知识点聚焦(呼吸徽章 + 左侧淡色带) ---------- */
+html.teach .kp.kp-current { background: linear-gradient(90deg, rgba(47,111,237,.06), transparent 45%); border-radius: 12px; }
+html.teach .kp.kp-current > .kp-head .kp-badge { animation: badgePulse 2s infinite; }
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(47,111,237,.35); }
+  50%      { box-shadow: 0 0 0 9px rgba(47,111,237,0); }
+}
+
+/* 键盘跳转时的闪光提示 */
+.kp.flash { animation: kpFlash 1.4s ease-out; }
+@keyframes kpFlash {
+  0%   { box-shadow: 0 0 0 3px var(--accent), 0 0 44px rgba(47,111,237,.35); border-radius: 12px; }
+  100% { box-shadow: 0 0 0 0 rgba(47,111,237,0); }
+}
+
+/* ---------- 课堂模式入口按钮 ---------- */
+.teach-fab {
+  position: fixed; right: 18px; bottom: 18px; z-index: 700;
+  border: 1px solid var(--border); background: #fff; color: var(--text-2);
+  border-radius: 999px; padding: 10px 16px; font-size: 13.5px; cursor: pointer;
+  box-shadow: var(--shadow-lift); font-family: var(--sans);
+}
+.teach-fab:hover { color: var(--accent); border-color: var(--accent); }
+html.teach .teach-fab { display: none; }
+
+/* ---------- 授课控制条(仅课堂模式显示) ---------- */
+.lesson-bar {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; z-index: 1100;
+  display: none; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
+  background: rgba(20,26,40,.93); color: #dbe4f5; border: 1px solid #2a3752;
+  border-radius: 14px; padding: 8px 12px; box-shadow: var(--shadow-lift);
+  font-size: 13px; max-width: min(94vw, 880px);
+}
+html.teach .lesson-bar { display: flex; }
+.lesson-bar .lb-pos {
+  font-family: var(--mono); font-size: 12.5px; color: #9db1d8; padding: 0 6px;
+  max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lesson-bar button {
+  background: #223052; color: #c9d6f2; border: none; border-radius: 8px;
+  padding: 6px 10px; font-size: 12.5px; cursor: pointer; font-family: var(--sans);
+}
+.lesson-bar button:hover { background: var(--accent); color: #fff; }
+.lesson-bar button.on { background: var(--accent-2); color: #04302e; font-weight: 700; }
+.lesson-bar .lb-sep { width: 1px; height: 18px; background: #2a3752; margin: 0 2px; }
+
+/* ---------- 快捷键速查 ---------- */
+.lb-help {
+  position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); z-index: 1110;
+  display: none; background: #141a28; color: #c9d6f2; border-radius: 12px;
+  padding: 14px 20px; font-size: 13px; line-height: 2.1; box-shadow: var(--shadow-lift);
+}
+.lb-help.open { display: block; }
+.lb-help b {
+  color: #fff; background: #223052; border-radius: 5px; padding: 1px 8px;
+  font-family: var(--mono); font-size: 12px; margin-right: 4px;
+}
+
+/* ---------- 计时器 HUD ---------- */
+.timer-hud {
+  position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 1320;
+  font-family: var(--mono); font-size: 30px; font-weight: 800; color: #141821;
+  background: #fff; border: 2px solid var(--accent); border-radius: 14px;
+  padding: 4px 22px; display: none; box-shadow: var(--shadow-lift);
+}
+.timer-hud.urgent { color: #b91c1c; border-color: #ef4444; animation: timerBlink 1s infinite; }
+@keyframes timerBlink { 50% { opacity: .5; } }
+
+/* ---------- 聚光灯 ---------- */
+.spotlight {
+  position: fixed; inset: 0; z-index: 900; pointer-events: none; display: none;
+  background: radial-gradient(circle var(--r, 230px) at var(--sx, 50%) var(--sy, 40%),
+              rgba(0,0,0,0) 0 calc(var(--r, 230px) - 40px),
+              rgba(8,12,20,.8) calc(var(--r, 230px) + 40px));
+}
+
+/* ---------- 黑屏幕布 ---------- */
+.blackout {
+  position: fixed; inset: 0; z-index: 1300; background: #05070c; display: none;
+  place-items: center; cursor: pointer;
+}
+.blackout span { color: #4a5464; font-size: 16px; letter-spacing: 3px; }
+
+/* ---------- 演示放大舞台 ---------- */
+.demo-stage {
+  position: fixed; inset: 0; z-index: 800; display: none;
+  background: rgba(13,19,32,.66); padding: 4vh 3vw;
+}
+.demo-stage.open { display: grid; place-items: center; }
+.demo-stage .stage-card {
+  background: #fff; border-radius: 16px; width: min(1080px, 94vw);
+  max-height: 92vh; overflow: auto; padding: 12px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.45);
+}
+.demo-stage .stage-close {
+  position: fixed; top: 18px; right: 22px; z-index: 801;
+  background: #fff; border: none; border-radius: 10px; width: 40px; height: 40px;
+  font-size: 20px; cursor: pointer; color: #3d4654; box-shadow: var(--shadow-lift);
+}
+.demo-stage .stage-close:hover { color: var(--accent); }
+/* 放大后同步增大演示区字号 */
+.demo-stage .demo-head h3 { font-size: 16px; }
+.demo-stage .demo-tip { font-size: 15px; }
+.demo-stage .demo-ctrl button, .demo-stage .demo-ctrl select { font-size: 14px; }
+.demo-stage .demo { margin: 0; }
+
+/* 演示头部的"放大"按钮 */
+.demo-head .zoom-btn {
+  font-size: 12.5px; font-family: var(--sans); color: var(--text-2);
+  background: #fff; border: 1px solid var(--border); border-radius: 7px;
+  padding: 4px 12px; cursor: pointer;
+}
+.demo-head .zoom-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---------- 课堂工具箱 ---------- */
+.lesson-tools {
+  position: fixed; right: 18px; bottom: 78px; z-index: 1120; display: none;
+  width: min(360px, calc(100vw - 28px)); padding: 14px;
+  color: #dbe4f5; background: rgba(20,26,40,.97); border: 1px solid #2a3752;
+  border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.32);
+}
+.lesson-tools.open { display: block; }
+.lesson-tools h3 { margin: 0 0 4px; font-size: 15px; color: #fff; }
+.lesson-tools p { margin: 0 0 10px; color: #8fa3c8; font-size: 12px; }
+.lesson-tools-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px; }
+.lesson-tools button {
+  border: 1px solid #344464; border-radius: 9px; padding: 9px 10px; cursor: pointer;
+  color: #dbe4f5; background: #223052; font: 500 12.5px var(--sans); text-align: left;
+}
+.lesson-tools button:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ---------- 屏幕画笔 ---------- */
+.ink-layer { position: fixed; inset: 0; z-index: 1050; display: none; cursor: crosshair; }
+.ink-layer.on { display: block; }
+.ink-layer canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+.ink-chip {
+  position: absolute; left: 18px; bottom: 80px; padding: 7px 12px; border-radius: 999px;
+  background: rgba(20,26,40,.92); color: #fff; font: 600 12px var(--sans); pointer-events: none;
+}
+
+/* ---------- 板书白板 ---------- */
+.whiteboard { position: fixed; inset: 0; z-index: 1150; display: none; background: #fbfaf6; }
+.whiteboard.open { display: block; }
+.whiteboard canvas { width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
+.board-tools {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 1;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+  background: rgba(255,255,255,.94); border: 1px solid #d8d3c8; border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(47,40,25,.13); padding: 8px 10px;
+}
+.board-tools strong { font-size: 13px; margin-right: 4px; }
+.board-tools button {
+  border: 1px solid #d8d3c8; background: #fff; border-radius: 8px; padding: 6px 10px;
+  cursor: pointer; font: 500 12.5px var(--sans); color: #3d4654;
+}
+.board-tools button:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---------- 激光笔 ---------- */
+.laser-dot {
+  position: fixed; z-index: 1210; width: 16px; height: 16px; border-radius: 50%; display: none;
+  pointer-events: none; transform: translate(-50%,-50%); background: #ff2f3e;
+  box-shadow: 0 0 0 5px rgba(255,47,62,.18), 0 0 24px 8px rgba(255,47,62,.55);
+}
+.laser-dot.on { display: block; }
+html.laser-on, html.laser-on * { cursor: none !important; }
+
+/* ---------- 教学提示 ---------- */
+.teach-notes {
+  position: fixed; top: 72px; right: 18px; bottom: 92px; z-index: 1020; display: none;
+  width: min(350px, calc(100vw - 28px)); overflow: auto; padding: 18px;
+  background: rgba(255,252,232,.97); color: #433c28; border: 1px solid #e6dca8;
+  border-radius: 14px; box-shadow: 0 18px 55px rgba(70,56,12,.2);
+}
+.teach-notes.open { display: block; }
+.teach-notes .tn-kicker { color: #8b6a05; font: 700 11px var(--mono); letter-spacing: .08em; }
+.teach-notes h3 { margin: 6px 0 10px; font-size: 18px; }
+.teach-notes p { font-size: 14px; line-height: 1.75; margin: 0; }
+.teach-notes .tn-intro { border-top: 1px dashed #d8c97c; margin-top: 14px; padding-top: 12px; color: #645a3b; }
+
+/* ---------- 章节速览 / 随机点名 ---------- */
+.class-modal {
+  position: fixed; inset: 0; z-index: 1230; display: none; place-items: center;
+  padding: 24px; background: rgba(8,12,20,.72);
+}
+.class-modal.open { display: grid; }
+.class-panel {
+  width: min(900px, 94vw); max-height: 88vh; overflow: auto; background: #fff;
+  border-radius: 18px; padding: 24px; box-shadow: 0 30px 90px rgba(0,0,0,.45);
+}
+.class-panel-head { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+.class-panel-head h2 { margin: 0; font-size: 22px; }
+.class-panel-head button { margin-left: auto; border: none; background: #eef2f8; border-radius: 8px; padding: 7px 11px; cursor: pointer; }
+.deck-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.deck-card {
+  display: block; padding: 16px; border: 1px solid var(--border); border-top: 4px solid var(--dc);
+  border-radius: 12px; color: var(--text); text-decoration: none; transition: .16s ease;
+}
+.deck-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+.deck-card.current { background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent); }
+.deck-card small { color: var(--text-3); }
+.deck-card b { display: block; margin: 7px 0 5px; }
+.roster-panel { width: min(600px, 94vw); }
+.roster-panel textarea {
+  width: 100%; min-height: 130px; resize: vertical; border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px; font: 14px/1.7 var(--sans);
+}
+.roster-actions { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.roster-actions button { border: none; border-radius: 9px; padding: 9px 18px; cursor: pointer; font: 600 13px var(--sans); }
+.roster-actions .draw-name { background: var(--accent); color: #fff; }
+.roster-result { min-height: 72px; display: grid; place-items: center; margin-top: 16px; border-radius: 12px;
+  background: var(--accent-soft); color: #1d4fc0; font-size: 30px; font-weight: 800; }
+
+/* ---------- 随堂一问 ---------- */
+.quiz-card {
+  margin-top: 18px; border: 1px solid #d8e6fd;
+  background: linear-gradient(135deg, #f4f8ff, #f6fbff); border-radius: 12px; padding: 16px 20px;
+}
+.quiz-card .q-head {
+  display: flex; align-items: center; gap: 8px; font-size: 13px;
+  font-weight: 700; color: #1d4fc0; margin-bottom: 8px;
+}
+.quiz-card .q-head small { color: #8a94a3; font-weight: 400; font-size: 12px; margin-left: auto; }
+.quiz-card .q-text { font-size: 15.5px; font-weight: 600; margin-bottom: 10px; }
+.quiz-card .q-opts { display: flex; gap: 10px; flex-wrap: wrap; }
+.quiz-card .q-opts button {
+  border: 1px solid var(--border); background: #fff; border-radius: 10px;
+  padding: 9px 16px; font-size: 14px; cursor: pointer; font-family: var(--sans);
+  color: var(--text); transition: all .15s;
+}
+.quiz-card .q-opts button:hover { border-color: var(--accent); transform: translateY(-1px); }
+.quiz-card .q-opts button.right { background: #e7f9f0; border-color: #10b981; color: #0b6a4a; font-weight: 700; }
+.quiz-card .q-opts button.wrong { background: #fdecec; border-color: #ef4444; color: #b91c1c; }
+.quiz-card .q-why {
+  display: none; margin-top: 12px; font-size: 14px; color: #0b6a4a;
+  background: #eefbfb; border-left: 3px solid var(--accent-2);
+  border-radius: 0 8px 8px 0; padding: 10px 14px;
+}
+.quiz-card.answered .q-why { display: block; }
+.quiz-card .q-reset {
+  display: none; margin-top: 8px; font-size: 12px; color: var(--text-3);
+  background: none; border: none; cursor: pointer; text-decoration: underline; padding: 0;
+}
+.quiz-card.answered .q-reset { display: inline; }
+
+/* ---------- 本章回顾 ---------- */
+.chapter-summary {
+  margin-top: 64px; border: 1px dashed var(--border); border-radius: 14px;
+  background: #fff; padding: 22px 26px;
+}
+.chapter-summary h3 { font-size: 17px; margin-bottom: 10px; }
+.chapter-summary ul { margin-left: 20px; }
+.chapter-summary li { font-size: 14.5px; color: var(--text-2); margin: 5px 0; }
+.chapter-summary .next-hint {
+  margin-top: 12px; font-size: 13.5px; color: #1d4fc0;
+  background: var(--accent-soft); border-radius: 8px; padding: 8px 14px; display: inline-block;
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 640px) {
+  html.teach body { padding-bottom: 128px; }
+  .lesson-bar { bottom: 8px; gap: 5px; width: calc(100vw - 16px); padding: 7px 8px; }
+  .lesson-bar .lb-pos { order: -1; width: 100%; max-width: none; text-align: center; }
+  .lesson-bar .lb-sep, .lesson-bar .lb-desktop { display: none; }
+  .lesson-bar button { padding: 6px 8px; font-size: 12px; }
+  .timer-hud { font-size: 24px; }
+  .lesson-tools { right: 8px; bottom: 126px; max-height: calc(100vh - 142px); overflow-y: auto; }
+  .deck-grid { grid-template-columns: 1fr; }
+  .teach-notes { right: 8px; left: 8px; width: auto; }
+  .board-tools { width: calc(100vw - 20px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kp.flash, html.teach .kp.kp-current > .kp-head .kp-badge, .timer-hud.urgent { animation: none; }
+}
+
+@media print {
+  html.teach body { padding-bottom: 0; }
+  .teach-fab, .lesson-bar, .lb-help, .timer-hud, .spotlight, .blackout,
+  .demo-stage, .lesson-tools, .ink-layer, .whiteboard, .laser-dot,
+  .teach-notes, .class-modal, .zoom-btn { display: none !important; }
+}
+
+/* ============================================================
+   互动三件套:先猜后看 / 全班举手统计 / 讨论墙
+   ============================================================ */
+
+/* ---------- 先猜后看(演示竞猜卡) ---------- */
+.quiz-card.pred-card { border-color: #e2d9fb; background: linear-gradient(135deg, #f8f5ff, #f5f9ff); }
+.pred-card .q-head { color: #6d28d9; }
+.pred-card .q-opts button.pick { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.q-reveal { margin-top: 10px; }
+.q-reveal button { border: none; background: var(--accent); color: #fff; border-radius: 9px;
+  padding: 8px 18px; font-size: 13.5px; cursor: pointer; font-family: var(--sans); }
+.q-reveal button:hover { filter: brightness(1.08); }
+
+/* ---------- 全班举手统计 ---------- */
+.q-tally { margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 10px; }
+.q-tally .t-head { font-size: 13px; font-weight: 700; color: var(--text-2);
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.q-tally .t-head small { font-weight: 400; color: var(--text-3); font-size: 11.5px; }
+.q-tally .t-bars { display: flex; gap: 3px; height: 26px; border-radius: 8px;
+  overflow: hidden; background: #eef2f8; margin-top: 8px; }
+.q-tally .t-bars i { display: flex; align-items: center; justify-content: center;
+  font: 600 12px var(--mono); color: #fff; min-width: 36px; transition: flex .3s ease;
+  white-space: nowrap; overflow: hidden; }
+.q-tally .tb0 { background: var(--accent); }
+.q-tally .tb1 { background: var(--accent-2); }
+.q-tally .tb2 { background: #f59e0b; }
+.q-tally .tb3 { background: #8b5cf6; }
+.q-tally .t-bars .t-empty { align-self: center; margin: 0 auto; font-size: 12px; color: var(--text-3); }
+.q-tally .t-btns { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.q-tally .t-grp { display: inline-flex; gap: 4px; }
+.q-tally .t-btns button { border: 1px solid var(--border); background: #fff; color: var(--text-2);
+  border-radius: 8px; padding: 5px 10px; font-size: 12px; cursor: pointer; font-family: var(--sans); }
+.q-tally .t-btns button:hover { border-color: var(--accent); color: var(--accent); }
+.q-tally .t-btns .t-sub { padding: 5px 7px; }
+.q-tally .t-btns .t-clear { color: var(--text-3); }
+.q-tally .t-total { font: 600 12px var(--mono); color: var(--text-3); margin-left: auto; }
+
+/* ---------- 讨论墙 ---------- */
+.wall { margin-top: 28px; border: 1px solid var(--border); border-radius: 16px;
+  background: #fff; padding: 22px 24px; }
+.wall-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.wall-head h3 { margin: 0; font-size: 17px; }
+.wall-count { font: 600 12.5px var(--mono); color: var(--text-3); background: #f1f4f9;
+  padding: 3px 10px; border-radius: 99px; }
+.wall-tool { border: 1px solid var(--border); background: #fff; color: var(--text-2);
+  border-radius: 9px; padding: 6px 12px; font-size: 12.5px; cursor: pointer;
+  font-family: var(--sans); margin-left: auto; }
+.wall-tool:hover { border-color: var(--accent); color: var(--accent); }
+.wall-tool.ghost { margin-left: 0; color: var(--text-3); }
+.wall-prompt { margin: 12px 0 16px; font-size: 14px; color: #1d4fc0;
+  background: var(--accent-soft); border-radius: 10px; padding: 10px 14px; }
+.wall-form { display: flex; flex-direction: column; gap: 10px; }
+.wall-meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.w-name { border: 1px solid var(--border); border-radius: 9px; padding: 8px 12px;
+  font-size: 13.5px; width: 150px; font-family: var(--sans); }
+.w-name:focus { outline: none; border-color: var(--accent); }
+.w-types { display: flex; gap: 6px; flex-wrap: wrap; }
+.w-types button { border: 1px solid var(--border); background: #fff; border-radius: 99px;
+  padding: 6px 13px; font-size: 12.5px; cursor: pointer; color: var(--text-2); font-family: var(--sans); }
+.w-types button.on { border-color: var(--wt, var(--accent)); color: var(--wt, var(--accent));
+  font-weight: 700; }
+.w-text { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+  font-size: 14px; font-family: var(--sans); resize: vertical; min-height: 70px; }
+.w-text:focus { outline: none; border-color: var(--accent); }
+.w-actions { display: flex; }
+.w-send { border: none; background: var(--accent); color: #fff; border-radius: 10px;
+  padding: 9px 26px; font-size: 13.5px; font-weight: 700; cursor: pointer; font-family: var(--sans); }
+.w-send:hover { filter: brightness(1.08); }
+.wall-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px; margin-top: 20px; }
+.wnote { border: 1px solid #eadfb8; border-top: 4px solid var(--wt, #2f6fed); border-radius: 12px;
+  padding: 12px 14px; background: linear-gradient(180deg, #fffef8, #fdf7e8);
+  transform: rotate(var(--rot, 0deg)); box-shadow: 0 4px 14px rgba(120, 100, 20, .08);
+  transition: transform .2s ease, box-shadow .2s ease; }
+.wnote:hover { transform: rotate(0deg) scale(1.02); box-shadow: 0 8px 22px rgba(120, 100, 20, .16); }
+.wn-head { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.wn-head b { font-size: 13px; color: var(--text); }
+.wn-head .wn-type { color: var(--wt); font-weight: 700; }
+.wn-head time { margin-left: auto; color: var(--text-3); font-family: var(--mono); font-size: 11px; }
+.wnote p { font-size: 14px; margin: 8px 0 10px; color: var(--text); line-height: 1.7;
+  word-break: break-word; white-space: pre-wrap; }
+.wn-foot { display: flex; gap: 8px; }
+.wn-foot button { border: none; background: none; font-size: 12px; color: var(--text-3);
+  cursor: pointer; padding: 2px 6px; border-radius: 6px; font-family: var(--sans); }
+.wn-foot button:hover { background: #f1f4f9; color: var(--accent); }
+.wn-foot .wn-del:hover { color: #ef4444; }
+.wall-empty { grid-column: 1 / -1; text-align: center; color: var(--text-3);
+  font-size: 13.5px; padding: 14px 0; }
+#wall { margin-top: 84px; }
+
+/* ---------- 轻提示 ---------- */
+.toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%);
+  background: #141a28; color: #fff; padding: 9px 20px; border-radius: 10px;
+  font-size: 13px; z-index: 999; opacity: 0; transition: opacity .25s; pointer-events: none; }
+.toast.show { opacity: 1; }
+
+/* ---------- 课堂模式下同步放大互动组件 ---------- */
+html.teach .q-text { font-size: 17px; }
+html.teach .q-opts button { font-size: 15px; padding: 11px 18px; }
+html.teach .q-why { font-size: 15px; }
+html.teach .wall-prompt { font-size: 15px; }
+html.teach .w-text { font-size: 15px; }
+html.teach .wnote p { font-size: 15px; }
+
+@media (max-width: 640px) {
+  .wall-tool { margin-left: 0; }
+  .q-tally .t-total { margin-left: 0; width: 100%; }
+}

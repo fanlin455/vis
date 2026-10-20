@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 1 章 · 渐进式加载网页图片 — 可视化导论</title>
+<meta name="description" content="学习渐进式图片、骨架屏、懒加载以及 LCP、CLS 等网页可视化性能指标。">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+  /* 本章专属:骨架屏动画 */
+  @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+  .sk-block {
+    background: linear-gradient(90deg, #e8ecf2 25%, #f5f7fa 50%, #e8ecf2 75%);
+    background-size: 400px 100%;
+    animation: shimmer 1.2s infinite linear;
+    border-radius: 6px;
+  }
+  .sk-card { display: flex; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; background: #fff; }
+  .sk-card .avatar { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+  .sk-card .lines { flex: 1; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+  .sk-card .lines i { display: block; height: 10px; }
+  .sk-card .lines i:last-child { width: 60%; }
+  .real-avatar { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+  .real-lines b { font-size: 14px; display: block; }
+  .real-lines span { font-size: 12.5px; color: var(--text-3); }
+  .demo-flex { display: flex; gap: 20px; flex-wrap: wrap; }
+  .demo-flex > div { flex: 1; min-width: 260px; }
+  .demo-flex h4 { font-size: 13px; color: var(--text-2); margin-bottom: 8px; text-align: center; font-weight: 600; }
+  .cls-meter { height: 10px; border-radius: 5px; background: var(--bg-soft); overflow: hidden; margin-top: 6px; }
+  .cls-meter i { display: block; height: 100%; width: 0; background: #10b981; transition: width .5s; }
+  .lazy-wrap { height: 240px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+  .lazy-card { height: 110px; margin-bottom: 10px; border-radius: 10px; border: 1px dashed var(--border);
+    display: grid; place-items: center; font-size: 13px; color: var(--text-3); transition: all .4s; }
+  .lazy-card.loaded { border-style: solid; border-color: #b8e8e8; background: #eefbfb; color: #0b6a6a; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="../index.html"><span class="brand-mark">VIS</span><span>可视化导论</span></a>
+    <nav><a href="../index.html#chapters">全部章节</a></nav>
+  </div>
+</header>
+
+<div class="ch-layout">
+
+  <!-- ============ 侧边目录 ============ -->
+  <aside class="toc">
+    <a class="toc-back" href="../index.html">← 返回门户</a>
+    <div class="toc-ch">第 1 章 · 基础篇</div>
+    <a href="#kp1">1.1 渐进式渲染</a>
+    <a href="#kp2">1.2 骨架屏</a>
+    <a href="#kp3">1.3 懒加载</a>
+    <a href="#kp4">1.4 LCP 与 CLS 指标</a>
+  </aside>
+
+  <!-- ============ 正文 ============ -->
+  <main>
+    <div class="ch-hero">
+      <span class="kicker">第 1 章 · 基础篇 · ★☆☆</span>
+      <h1>渐进式加载网页图片</h1>
+      <p class="lead">
+        可视化的第一步不是画图,而是<strong>把内容又快又稳地送到用户眼前</strong>。
+        本章以"图片如何加载"为切口,理解渐进式渲染、骨架屏、懒加载三大手段,
+        以及衡量它们效果的两个核心指标 LCP 与 CLS。
+      </p>
+      <div class="ch-tags"><span>HTML 基础</span><span>性能优化</span><span>用户体验</span></div>
+    </div>
+
+    <div class="objectives">
+      <h2>🎯 学习目标</h2>
+      <ul>
+        <li>能说出渐进式渲染、骨架屏、懒加载分别解决什么问题</li>
+        <li>掌握 <code>&lt;img&gt;</code> 的 <code>loading</code> / <code>decoding</code> / 尺寸属性的正确写法</li>
+        <li>会用 IntersectionObserver 实现自己的懒加载逻辑</li>
+        <li>理解 LCP、CLS 两个 Web 性能指标与加载策略的关系</li>
+      </ul>
+    </div>
+
+    <!-- ================= KP 1.1 ================= -->
+    <section class="kp" id="kp1">
+      <div class="kp-head"><span class="kp-badge">KP 1.1</span><h2>渐进式渲染:先模糊,后清晰</h2></div>
+      <div class="kp-body">
+        <p>
+          浏览器下载一张大图需要时间。<strong>线性(基线)JPEG</strong> 从上到下逐行传输——
+          用户先看到图片的上半截;而<strong>渐进式(Progressive)JPEG</strong> 先传一张极低分辨率的整图,
+          再逐步细化,用户几乎立刻就能看到"大概的样子"。
+        </p>
+        <p>
+          两者的<strong>总下载量几乎相同</strong>,差别只在字节的组织顺序。
+          但心理学上,"0.5 秒看到模糊全图"远比"2 秒后突然出现清晰图"体验更好——
+          用户更早建立预期,等待焦虑显著降低。
+        </p>
+        <div class="note">💡 <b>为什么可视化课程先讲这个?</b>图表的本质也是"渐进理解":
+          先让读者看到整体形状(趋势、异常),再引导关注细节。加载策略与视觉设计遵循同一条认知规律。</div>
+        <ul>
+          <li>基线式:自上而下逐行显示,信息不完整,易造成误读(只看到半张图)</li>
+          <li>渐进式:低清 → 高清,用户越早"看全",越早开始理解</li>
+        </ul>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>img-progressive.html</div>
+        <button class="copy">复制</button>
+<pre><code>&lt;!-- 同一张图,服务端提供渐进式编码版本 --&gt;
+&lt;img src="chart-progressive.jpg"
+     alt="2024 年销量图表"
+     width="800" height="600"&gt;
+
+&lt;!-- Photoshop / libjpeg 导出时勾选 Progressive 即可,
+     体积通常还比基线式小 5%~10% --&gt;</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 基线式 vs 渐进式加载</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl"><button class="primary" id="d1-play">▶ 播放加载</button></div>
+        </div>
+        <div class="demo-body">
+          <div class="demo-flex">
+            <div>
+              <h4>基线式:逐行出现</h4>
+              <svg id="d1-left" viewBox="0 0 300 190" width="100%" style="border-radius:10px;background:#dfe8f3">
+                <defs><clipPath id="d1-clip"><rect id="d1-cliprect" x="0" y="0" width="300" height="0"/></clipPath></defs>
+                <g clip-path="url(#d1-clip)" id="d1-left-scene"></g>
+              </svg>
+              <div id="d1-left-hint" style="text-align:center;font-size:12px;color:var(--text-3);margin-top:6px;font-family:var(--mono)">尚未开始</div>
+            </div>
+            <div>
+              <h4>渐进式:模糊 → 清晰</h4>
+              <svg id="d1-right" viewBox="0 0 300 190" width="100%" style="border-radius:10px;background:#dfe8f3">
+                <defs>
+                  <filter id="d1-blur"><feGaussianBlur id="d1-std" stdDeviation="14"/></filter>
+                </defs>
+                <g id="d1-right-scene" filter="url(#d1-blur)" opacity="0"></g>
+              </svg>
+              <div id="d1-right-hint" style="text-align:center;font-size:12px;color:var(--text-3);margin-top:6px;font-family:var(--mono)">尚未开始</div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-tip">提示:两种方式"总数据量"相同(同一条进度),对比的是到达顺序带来的感知差异。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 1.2 ================= -->
+    <section class="kp" id="kp2">
+      <div class="kp-head"><span class="kp-badge">KP 1.2</span><h2>骨架屏:提前剧透布局</h2></div>
+      <div class="kp-body">
+        <p>
+          图片加载前页面往往是<strong>一块空白</strong>;图片到达后内容突然下移,页面"跳一下"。
+          骨架屏(Skeleton Screen)用灰色的占位块提前勾画出即将出现的内容布局:
+          头像是圆的、标题在左边、图片是 16:9——用户不需要看到内容,就已经知道<strong>内容会出现在哪里</strong>。
+        </p>
+        <p>
+          关键收益有二:其一,消除布局跳动,改善 CLS(见 1.4);其二,
+          "系统正在工作"的信号降低了用户的等待挫败感——这比转圈加载动画更安静、更克制。
+        </p>
+        <ul>
+          <li>骨架块的形状、比例必须与真实内容一致,否则骨架本身就是一次布局欺骗</li>
+          <li>配合微弱的"呼吸"动画(shimmer),提示加载仍在进行</li>
+          <li>数据到达后,骨架 → 内容的替换要平滑(opacity 过渡),不要闪烁</li>
+        </ul>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>skeleton.css</div>
+        <button class="copy">复制</button>
+<pre><code>/* 骨架块:灰色圆角 + 横向流光 */
+.skeleton {
+  background: linear-gradient(90deg, #e8ecf2 25%, #f5f7fa 50%, #e8ecf2 75%);
+  background-size: 400px 100%;      /* 让渐变可被平移 */
+  animation: shimmer 1.2s infinite linear;
+  border-radius: 6px;
+}
+@keyframes shimmer {
+  0%   { background-position: -200px 0; }
+  100% { background-position:  200px 0; }
+}
+
+/* 数据到达后:骨架淡出、内容淡入,避免闪烁 */
+.skeleton { transition: opacity .3s; }
+.loaded   { animation: none; opacity: 0; }</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 骨架屏 → 真实内容</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <button class="primary" id="d2-load">开始加载(模拟 1.2s 网络)</button>
+            <span id="d2-timer" style="font-size:12px;color:var(--text-3)">未开始</span>
+          </div>
+        </div>
+        <div class="demo-body">
+          <div id="d2-list" style="max-width:420px"></div>
+        </div>
+        <div class="demo-tip">提示:观察骨架块与真实内容的尺寸完全一致——替换瞬间没有任何布局跳动。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 1.3 ================= -->
+    <section class="kp" id="kp3">
+      <div class="kp-head"><span class="kp-badge">KP 1.3</span><h2>懒加载:看不见的,先不加载</h2></div>
+      <div class="kp-body">
+        <p>
+          一个相册页面可能有一百张图,但视口里一次只显示五六张。
+          <strong>懒加载(Lazy Loading)</strong> 的策略是:视口外的图片先不请求,
+          快滚动到时再加载。首屏请求数与流量立刻下降,LCP 自然改善。
+        </p>
+        <p>
+          现代浏览器一行属性即可启用:<code>loading="lazy"</code>。
+          若需要更精细的控制(提前量、加载占位、数据上报),可以用
+          <code>IntersectionObserver</code> 自己实现——它是浏览器原生的"元素进入视口"观察器,
+          比 scroll 事件监听性能好得多(不阻塞主线程、自动合批回调)。
+        </p>
+        <div class="note warn">⚠️ 懒加载不是万金油:首屏图片不要懒加载(反而延迟了 LCP),只对视口外、且用户可能滚动到的内容启用。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>lazy.js</div>
+        <button class="copy">复制</button>
+<pre><code>// 方式一:原生懒加载,一行搞定
+&lt;img src="pic.jpg" loading="lazy" decoding="async" width="800" height="600"&gt;
+
+// 方式二:IntersectionObserver 自定义懒加载
+const io = new IntersectionObserver((entries) =&gt; {
+  entries.forEach((entry) =&gt; {
+    if (!entry.isIntersecting) return;    // 还没进入视口
+    const img = entry.target;
+    img.src = img.dataset.src;            // 真实地址藏在 data-src 里
+    io.unobserve(img);                    // 加载一次后停止观察
+  });
+}, { rootMargin: "200px" });              // 提前 200px 开始加载
+
+document.querySelectorAll("img[data-src]").forEach((img) =&gt; io.observe(img));</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 滚动容器内的懒加载</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <span style="font-size:12.5px;color:var(--accent);font-weight:600" id="d3-count">已加载 0 / 8</span>
+            <button id="d3-reset">重置</button>
+          </div>
+        </div>
+        <div class="demo-body">
+          <div class="lazy-wrap" id="d3-wrap"></div>
+        </div>
+        <div class="demo-tip">提示:向下滚动右侧容器,图片在进入视口前 60px 才"发起请求"(灰色 → 青色)。真实场景中就是此时才下载图片字节。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 1.4 ================= -->
+    <section class="kp" id="kp4">
+      <div class="kp-head"><span class="kp-badge">KP 1.4</span><h2>LCP 与 CLS:给体验打分</h2></div>
+      <div class="kp-body">
+        <p>
+          优化不能靠感觉,需要指标。Web 性能的两个核心指标与本章内容直接相关:
+        </p>
+        <ul>
+          <li><strong>LCP(Largest Contentful Paint,最大内容绘制)</strong>:视口内最大元素渲染完成的时间。渐进式渲染、懒加载、首屏精简都在优化它。</li>
+          <li><strong>CLS(Cumulative Layout Shift,累积布局偏移)</strong>:页面生命周期内所有"意外布局跳动"的总分。骨架屏、为图片预留宽高都是为了它。</li>
+        </ul>
+        <p>
+          最典型的 CLS 杀手:<code>&lt;img&gt;</code> 不写 <code>width</code>/<code>height</code>。
+          图片到达前高度为 0,到达后把下方内容整体推下去——用户正要点按钮,按钮跑了。
+          浏览器其实只需<strong>提前知道宽高比</strong>就能预留空间。
+        </p>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>cls-fix.html</div>
+        <button class="copy">复制</button>
+<pre><code>&lt;!-- ❌ 坏:没有尺寸,图片到达时布局下移,CLS +0.42 --&gt;
+&lt;img src="chart.jpg" alt="销量图表"&gt;
+
+&lt;!-- ✅ 好:浏览器预留 800×600 的盒子,零偏移 --&gt;
+&lt;img src="chart.jpg" alt="销量图表" width="800" height="600"&gt;
+
+&lt;!-- 响应式布局下用 CSS 锁定宽高比,同样有效 --&gt;
+&lt;style&gt;
+  .figure { aspect-ratio: 4 / 3; }   /* 宽高比 4:3,高度永远算得出 */
+&lt;/style&gt;</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 有无预留尺寸的布局跳动对比</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl"><button class="primary" id="d4-play">模拟图片到达</button></div>
+        </div>
+        <div class="demo-body">
+          <div class="demo-flex">
+            <div>
+              <h4>❌ 未预留尺寸 → 文字被推走</h4>
+              <div style="border:1px solid var(--border);border-radius:10px;padding:12px;min-height:170px">
+                <div style="font-size:13px;color:var(--text-2)">段落文字……用户正在阅读这里。</div>
+                <div id="d4-img-bad" style="height:0;transition:height .5s"></div>
+                <div style="font-size:13px;color:var(--text-2);margin-top:8px" id="d4-text-bad">👇 这行文字会被推下去(模拟按钮)</div>
+              </div>
+              <div class="cls-meter"><i id="d4-cls-bad"></i></div>
+              <div style="font-size:12px;color:var(--text-3);margin-top:3px">CLS 累计:<b id="d4-bad-val" style="color:#ef4444">0.00</b>(红线为差)</div>
+            </div>
+            <div>
+              <h4>✅ 预留 width/height → 纹丝不动</h4>
+              <div style="border:1px solid var(--border);border-radius:10px;padding:12px;min-height:170px">
+                <div style="font-size:13px;color:var(--text-2)">段落文字……用户正在阅读这里。</div>
+                <div id="d4-img-good" style="height:72px;border-radius:8px;background:#eef2f7;display:grid;place-items:center;font-size:12px;color:var(--text-3);margin:8px 0;transition:background .5s">占位 800×600(等比)</div>
+                <div style="font-size:13px;color:var(--text-2);margin-top:8px">👇 这行文字保持原位</div>
+              </div>
+              <div class="cls-meter"><i id="d4-cls-good"></i></div>
+              <div style="font-size:12px;color:var(--text-3);margin-top:3px">CLS 累计:<b id="d4-good-val" style="color:#10b981">0.00</b></div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-tip">提示:Google 把 CLS &lt; 0.1 定为"良好"。一次 72px 的意外下推就足以把普通页面打到红线。</div>
+      </div>
+    </section>
+
+    <!-- ================= 上一章 / 下一章 ================= -->
+    <div class="ch-pager">
+      <a href="../index.html"><span class="dir">← 返回门户</span><span class="ttl">课程首页</span></a>
+      <a class="next" href="ch1-2.html"><span class="dir">下一章 →</span><span class="ttl">第 2 章 · D3.js 入门与 SVG 基础</span></a>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/main.js"></script>
+<script src="../assets/lesson.js"></script>
+<script>
+(function () {
+  /* ========== 演示 1.1:基线 vs 渐进 ========== */
+  // 生成一张"图表风景"SVG 场景字符串(两个演示共用)
+  function sceneSVG() {
+    return `
+      <rect x="0" y="0" width="300" height="190" fill="#cfe3f7"/>
+      <circle cx="238" cy="48" r="22" fill="#ffd166"/>
+      <path d="M0,190 L70,90 L120,190 Z" fill="#5b8db8"/>
+      <path d="M90,190 L170,70 L250,190 Z" fill="#3f6fa3"/>
+      <rect x="20" y="120" width="22" height="50" fill="#2f6fed" opacity=".85"/>
+      <rect x="50" y="100" width="22" height="70" fill="#2f6fed" opacity=".85"/>
+      <rect x="80" y="135" width="22" height="35" fill="#2f6fed" opacity=".85"/>
+      <rect x="110" y="85" width="22" height="85" fill="#2f6fed" opacity=".85"/>
+      <path d="M20,112 Q80,60 160,95 T300,80" stroke="#ef4444" stroke-width="3" fill="none"/>`;
+  }
+  document.getElementById("d1-left-scene").innerHTML = sceneSVG();
+  document.getElementById("d1-right-scene").innerHTML = sceneSVG();
+
+  const d1 = {
+    t: 0, playing: false, raf: null,
+    clip: document.getElementById("d1-cliprect"),
+    std: document.getElementById("d1-std"),
+    right: document.getElementById("d1-right-scene"),
+    lh: document.getElementById("d1-left-hint"),
+    rh: document.getElementById("d1-right-hint"),
+    btn: document.getElementById("d1-play"),
+    reset() {
+      this.t = 0; this.clip.setAttribute("height", 0);
+      this.std.setAttribute("stdDeviation", 14);
+      this.right.setAttribute("opacity", 0);
+      this.lh.textContent = this.rh.textContent = "尚未开始";
+    },
+    frame() {
+      this.t += 1 / 120;                      // 2 秒模拟完整下载
+      const t = Math.min(this.t / 2, 1);
+      this.clip.setAttribute("height", 190 * t);            // 基线:逐行
+      this.std.setAttribute("stdDeviation", 14 * (1 - t) + 0.01); // 渐进:去模糊
+      this.right.setAttribute("opacity", Math.min(t * 3, 1));
+      this.lh.textContent = "已接收 " + Math.round(t * 100) + "%";
+      this.rh.textContent = t < 1 ? "清晰度 " + Math.round(t * 100) + "%" : "完成 ✓";
+      if (t < 1) { this.raf = requestAnimationFrame(() => this.frame()); }
+      else { this.playing = false; this.btn.textContent = "▶ 播放加载"; }
+    },
+    play() {
+      cancelAnimationFrame(this.raf);
+      this.reset(); this.playing = true;
+      this.btn.textContent = "加载中…";
+      this.frame();
+    },
+  };
+  d1.btn.addEventListener("click", () => d1.play());
+
+  /* ========== 演示 1.2:骨架屏 ========== */
+  const USERS = [
+    ["林小图", "完成第 3 章作业 · 柱状图"],
+    ["王阿达", "收藏了《交互与动画》"],
+    ["陈画布", "提问:Canvas 怎么导出 PNG?"],
+  ];
+  const d2list = document.getElementById("d2-list");
+  const d2timer = document.getElementById("d2-timer");
+
+  function skCard() {
+    return `<div class="sk-card">
+      <div class="sk-block avatar"></div>
+      <div class="lines"><i class="sk-block" style="width:45%"></i><i class="sk-block" style="width:85%"></i></div>
+    </div>`;
+  }
+  function realCard(name, msg, i) {
+    const hue = [210, 160, 275][i % 3];
+    return `<div class="sk-card">
+      <svg class="real-avatar" viewBox="0 0 44 44">
+        <circle cx="22" cy="22" r="22" fill="hsl(${hue},65%,80%)"/>
+        <circle cx="22" cy="17" r="7" fill="hsl(${hue},50%,45%)"/>
+        <path d="M8,40 Q22,24 36,40 Z" fill="hsl(${hue},50%,45%)"/>
+      </svg>
+      <div class="real-lines"><b>${name}</b><span>${msg}</span></div>
+    </div>`;
+  }
+  function showSkeleton() {
+    d2list.innerHTML = skCard() + skCard() + skCard();
+    d2timer.textContent = "骨架屏展示中 · 点击上方按钮模拟网络加载";
+  }
+  function showReal() {
+    d2list.innerHTML = USERS.map((u, i) => realCard(u[0], u[1], i)).join("");
+    d2timer.textContent = "完成 · 布局零跳动";
+  }
+  document.getElementById("d2-load").addEventListener("click", () => {
+    showSkeleton();
+    const t0 = performance.now();
+    setTimeout(() => {
+      showReal();
+      d2timer.textContent = "完成 · 用时 " + Math.round(performance.now() - t0) + "ms";
+    }, 1200);
+  });
+  showSkeleton();   // 初始即展示骨架,页面一打开就能看到效果
+
+  /* ========== 演示 1.3:懒加载 ========== */
+  const wrap = document.getElementById("d3-wrap");
+  const countEl = document.getElementById("d3-count");
+  let loadedCount = 0, total = 8;
+
+  function buildLazy() {
+    loadedCount = 0;
+    countEl.textContent = "已加载 0 / " + total;
+    wrap.innerHTML = "";
+    wrap.scrollTop = 0;
+    for (let i = 0; i < total; i++) {
+      const card = document.createElement("div");
+      card.className = "lazy-card";
+      card.dataset.idx = i;
+      card.textContent = "图片 " + (i + 1) + " · 未加载(仅占位)";
+      wrap.appendChild(card);
+    }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        const el = e.target;
+        io.unobserve(el);
+        setTimeout(() => {                    // 模拟 300ms 网络请求
+          el.classList.add("loaded");
+          el.textContent = "🖼 图片 " + (+el.dataset.idx + 1) + " · 已加载 " + (200 + +el.dataset.idx * 40) + "KB";
+          loadedCount++;
+          countEl.textContent = "已加载 " + loadedCount + " / " + total;
+        }, 300);
+      });
+    }, { root: wrap, rootMargin: "60px" });
+    wrap.querySelectorAll(".lazy-card").forEach((c) => io.observe(c));
+  }
+  document.getElementById("d3-reset").addEventListener("click", buildLazy);
+  buildLazy();
+
+  /* ========== 演示 1.4:CLS 对比 ========== */
+  document.getElementById("d4-play").addEventListener("click", () => {
+    const bad = document.getElementById("d4-img-bad");
+    bad.style.height = "0";                           // 只用 height 布局变化推动文字
+    document.getElementById("d4-cls-bad").style.width = "0";
+    document.getElementById("d4-cls-bad").style.background = "#ef4444";
+    document.getElementById("d4-bad-val").textContent = "0.00";
+    setTimeout(() => {
+      bad.style.height = "72px";                      // 图片突然撑开,文字被布局推走
+      const bar = document.getElementById("d4-cls-bad");
+      bar.style.width = "86%";                        // 模拟 CLS 0.42 → 红区
+      document.getElementById("d4-bad-val").textContent = "0.42";
+    }, 500);
+    const good = document.getElementById("d4-img-good");
+    good.style.background = "#eef2f7"; good.textContent = "占位 800×600(等比)";
+    const gbar = document.getElementById("d4-cls-good");
+    gbar.style.width = "0"; gbar.style.background = "#10b981";
+    document.getElementById("d4-good-val").textContent = "0.00";
+    setTimeout(() => {
+      good.style.background = "#dcebff";
+      good.textContent = "✓ 图片到达,填入预留空间";
+      gbar.style.width = "8%";                        // CLS ≈ 0 → 绿区
+    }, 500);
+  });
+})();
+</script>
+</body>
+</html>

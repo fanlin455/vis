@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 9 章 · 期末:从数据到发布 — 可视化导论</title>
+<meta name="description" content="梳理可视化项目六步工作流、GitHub Pages 发布流程与作品自检清单。">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+  .flow-step { cursor: pointer; }
+  .flow-step:hover rect { stroke: #2f6fed; stroke-width: 2; }
+  .flow-detail { border: 1px solid var(--border); border-radius: 12px; background: #fff;
+    padding: 16px 20px; margin-top: 14px; min-height: 80px; }
+  .flow-detail h4 { color: var(--accent); font-size: 15px; margin-bottom: 6px; }
+  .flow-detail p { font-size: 13.5px; color: var(--text-2); }
+  .flow-detail ul { margin: 6px 0 0 18px; }
+  .flow-detail li { font-size: 13.5px; color: var(--text-2); margin: 3px 0; }
+  .ck-progress { display: flex; align-items: center; gap: 20px; }
+  .ck-list { flex: 1; }
+  .ck-item { display: flex; gap: 10px; align-items: flex-start; padding: 9px 12px; border-radius: 9px;
+    cursor: pointer; transition: background .15s; font-size: 14px; color: var(--text); }
+  .ck-item:hover { background: var(--bg-soft); }
+  .ck-item input { margin-top: 4px; accent-color: #10b981; width: 16px; height: 16px; }
+  .ck-item.done span { color: #0b6a4a; }
+  .ck-item small { display: block; color: var(--text-3); font-size: 12px; margin-top: 1px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="../index.html"><span class="brand-mark">VIS</span><span>可视化导论</span></a>
+    <nav><a href="../index.html#chapters">全部章节</a></nav>
+  </div>
+</header>
+
+<div class="ch-layout">
+
+  <aside class="toc">
+    <a class="toc-back" href="../index.html">← 返回门户</a>
+    <div class="toc-ch">第 9 章 · 拓展篇</div>
+    <a href="#kp1">9.1 完整工作流</a>
+    <a href="#kp2">9.2 GitHub Pages 发布</a>
+    <a href="#kp3">9.3 作品自检清单</a>
+  </aside>
+
+  <main>
+    <div class="ch-hero">
+      <span class="kicker">第 9 章 · 拓展篇 · ★★★★</span>
+      <h1>期末:从数据到发布</h1>
+      <p class="lead">
+        一个可视化项目的完整生命:选题 → 找数据 → 清洗 → 探索 → 设计 → 实现 → 发布 → 迭代。
+        本章把前八章的技能串成流水线,并用 GitHub Pages 把作品免费送到互联网上——
+        <strong>能被别人打开的图,才算画完了。</strong>
+      </p>
+      <div class="ch-tags"><span>项目流程</span><span>GitHub Pages</span><span>作品集</span><span>自检</span></div>
+    </div>
+
+    <div class="objectives">
+      <h2>🎯 学习目标</h2>
+      <ul>
+        <li>记住六步工作流,并知道每一步的产出物是什么</li>
+        <li>独立完成"建仓 → 推送 → 开启 Pages"的发布全流程</li>
+        <li>会用自检清单(设计 / 交互 / 性能 / 可访问性)打磨作品</li>
+      </ul>
+    </div>
+
+    <!-- ================= KP 9.1 ================= -->
+    <section class="kp" id="kp1">
+      <div class="kp-head"><span class="kp-badge">KP 9.1</span><h2>六步工作流:每一步都有产出物</h2></div>
+      <div class="kp-body">
+        <p>
+          新手最常见的翻车:拿到数据立刻打开编辑器写代码。正确的顺序是——
+          <strong>先想清楚给谁看、回答什么问题</strong>,数据、图表、交互都为这个问题服务。
+        </p>
+        <div class="note">💡 口诀:问题 &gt; 数据 &gt; 图 &gt; 代码。顺序反了,返工是必然。</div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 项目流水线(点击每个阶段看要点)</h3>
+          <span class="spacer"></span>
+        </div>
+        <div class="demo-body">
+          <svg id="flow-svg" viewBox="0 0 660 150" style="width:100%"></svg>
+          <div class="flow-detail" id="flow-detail"><h4>👆 点击上方任一阶段</h4>
+          <p>每个阶段展开:目标、常见坑、产出物。走完一遍,期末项目的骨架就有了。</p></div>
+        </div>
+        <div class="demo-tip">提示:六个阶段不是严格单向——探索(③)中发现数据问题回到清洗(②)是常态,流程图里也有这条回边。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 9.2 ================= -->
+    <section class="kp" id="kp2">
+      <div class="kp-head"><span class="kp-badge">KP 9.2</span><h2>GitHub Pages:五分钟上线作品</h2></div>
+      <div class="kp-body">
+        <p>
+          GitHub Pages 对静态网站免费:推一个仓库上去,开一个开关,你的作品就有了
+          <code>https://用户名.github.io/仓库名</code> 的公网地址。本课程门户就是这么发布的。
+        </p>
+        <div class="note warn">⚠️ Pages 只适合<strong>纯静态</strong>内容(HTML/CSS/JS/数据文件):没有后端、不能跑数据库;
+        单文件建议 &lt; 100MB、整仓 &lt; 1GB——这也是本站坚持"零视频、轻依赖"的原因(呼应第 1 章)。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>deploy.sh</div>
+        <button class="copy">复制</button>
+<pre><code># 1. 建仓并初始化(仓库名即网址后缀)
+git init
+git add .
+git commit -m "feat: 课程作品 v1"
+
+# 2. 推送到 GitHub(先在网页上创建空仓库)
+git branch -M main
+git remote add origin https://github.com/&lt;用户名&gt;/&lt;仓库名&gt;.git
+git push -u origin main
+
+# 3. 开启 Pages:仓库 Settings → Pages
+#    Source 选 main 分支 /root,Save
+#    ⏳ 约 1 分钟后访问 https://&lt;用户名&gt;.github.io/&lt;仓库名&gt;/
+
+# 以后每次更新只需:
+git add . &amp;&amp; git commit -m "update" &amp;&amp; git push   # 推送即部署</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 发布检查单(跟着勾,勾完就能上线)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl"><button id="ck-reset2">重置</button></div>
+        </div>
+        <div class="demo-body">
+          <div class="ck-progress">
+            <div class="ck-list" id="deploy-list"></div>
+            <svg width="130" height="130" viewBox="0 0 130 130" id="deploy-ring"></svg>
+          </div>
+        </div>
+        <div class="demo-tip">提示:右边的进度环随勾选实时变化——把它当作你期末项目仓库里的 README 清单模板。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 9.3 ================= -->
+    <section class="kp" id="kp3">
+      <div class="kp-head"><span class="kp-badge">KP 9.3</span><h2>作品自检:上线前的最后一道关</h2></div>
+      <div class="kp-body">
+        <p>
+          交作品前用四个维度过一遍:设计、交互、性能、可访问性。
+          这份清单浓缩了全课程的要点——能全部打勾,说明这门课的知识点真正落地了。
+        </p>
+        <div class="note">💡 自检时换个心态:假装你是<strong>第一次</strong>打开这个链接的陌生读者,10 秒内能看懂"这是什么、回答什么问题"吗?</div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 四维自检清单(逐项打勾看完成度)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl"><button id="ck-reset">重置</button></div>
+        </div>
+        <div class="demo-body">
+          <div class="ck-progress">
+            <div class="ck-list" id="qa-list"></div>
+            <svg width="130" height="130" viewBox="0 0 130 130" id="qa-ring"></svg>
+          </div>
+        </div>
+        <div class="demo-tip">提示:达到 100% 时进度环会给你一个惊喜——这个小动画本身,就是第 5 章"有目的的动画"的示范。</div>
+      </div>
+    </section>
+
+    <div class="ch-pager">
+      <a href="ch3-2.html"><span class="dir">← 上一章</span><span class="ttl">第 8 章 · 专题:表格可视化</span></a>
+      <a class="next" href="../index.html"><span class="dir">完成课程 →</span><span class="ttl">返回门户 · 回顾学习路径</span></a>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/main.js"></script>
+<script src="../assets/lesson.js"></script>
+<script>
+(function () {
+  const V = window.Vis;
+
+  /* ========== 演示 9.1:流水线 ========== */
+  const STEPS = [
+    { key: "① 选题", goal: "回答一个具体、真实的问题", trap: "坑:「可视化一些数据」不是问题;「哪类图书借阅量受季节影响最大」才是", out: "一句话问题陈述 + 目标读者" },
+    { key: "② 数据", goal: "获取可靠、可用的原始数据", trap: "坑:来源不可溯、授权不明、字段残缺——立项前先看 20 行样本", out: "CSV/JSON 数据文件 + 来源说明" },
+    { key: "③ 清洗", goal: "处理缺失、异常、类型(第 6 章)", trap: "坑:把缺失当 0;清洗不留日志,复查时无法解释", out: "干净数据 + 清洗日志" },
+    { key: "④ 探索", goal: "快速试画,寻找值得讲的故事", trap: "坑:跳过探索直接精修第一版;先出 10 张草图再选 1 张深挖", out: "草图集 + 选定方案" },
+    { key: "⑤ 实现", goal: "编码实现交互(第 2–6 章)", trap: "坑:过度设计,动效堆砌;每个交互都要回答第 5 章的\"服务于理解吗\"", out: "可运行的作品页面" },
+    { key: "⑥ 发布", goal: "上线 + 文档 + 收集反馈", trap: "坑:没有 README,三个月后自己也看不懂;没有反馈渠道,失去迭代机会", out: "公网地址 + 文档 + 迭代计划" },
+  ];
+  const flowSvg = document.getElementById("flow-svg");
+  const flowDetail = document.getElementById("flow-detail");
+  const FW = 660, boxW = 92, gap = 14;
+
+  function flowDraw(active) {
+    flowSvg.innerHTML = "";
+    STEPS.forEach((s, i) => {
+      const x = 14 + i * (boxW + gap);
+      const y = 40;
+      // 箭头
+      if (i < STEPS.length - 1) {
+        flowSvg.appendChild(V.svgEl("path", {
+          d: `M ${x + boxW} ${y + 26} L ${x + boxW + gap - 3} ${y + 26}`,
+          stroke: "#b6c2d6", "stroke-width": 2, "marker-end": "url(#farr)",
+        }));
+      }
+      const g = V.svgEl("g", { class: "flow-step" });
+      const rect = V.svgEl("rect", {
+        x, y, width: boxW, height: 52, rx: 10,
+        fill: active === i ? "#2f6fed" : "#fff", stroke: active === i ? "#2f6fed" : "#d7dde8",
+      });
+      g.appendChild(rect);
+      const t1 = V.svgEl("text", { x: x + boxW / 2, y: y + 22, "text-anchor": "middle", "font-size": 14, "font-weight": 700, fill: active === i ? "#fff" : "#1e2530" });
+      t1.textContent = s.key.split(" ")[1];
+      const t2 = V.svgEl("text", { x: x + boxW / 2, y: y + 40, "text-anchor": "middle", "font-size": 10.5, fill: active === i ? "#dbe7ff" : "#8a94a3" });
+      t2.textContent = "STEP " + (i + 1);
+      g.appendChild(t1); g.appendChild(t2);
+      g.addEventListener("click", () => flowDraw(i));
+      flowSvg.appendChild(g);
+    });
+    // 回边:探索 → 清洗
+    flowSvg.appendChild(V.svgEl("path", {
+      d: `M ${14 + 2 * (boxW + gap) + boxW / 2} 96 C ${14 + 2 * (boxW + gap) + boxW / 2} 126, ${14 + 2 * (boxW + gap) - 30} 126, ${14 + 2 * (boxW + gap) - 30} 96`,
+      fill: "none", stroke: "#f59e0b", "stroke-width": 1.6, "stroke-dasharray": "5 4",
+    }));
+    const backT = V.svgEl("text", { x: 14 + 2 * (boxW + gap) + boxW / 2 + 8, y: 124, "font-size": 10.5, fill: "#b7791f" });
+    backT.textContent = "发现问题常回炉";
+    flowSvg.appendChild(backT);
+    // defs
+    const defs = V.svgEl("defs");
+    const mk = V.svgEl("marker", { id: "farr", viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto" });
+    mk.appendChild(V.svgEl("path", { d: "M0,0 L10,5 L0,10 Z", fill: "#b6c2d6" }));
+    defs.appendChild(mk);
+    flowSvg.appendChild(defs);
+
+    if (active != null) {
+      const s = STEPS[active];
+      flowDetail.innerHTML = `<h4>${s.key} —— ${s.goal}</h4>
+        <p>${s.trap}</p>
+        <ul><li>📦 产出物:<b>${s.out}</b></li></ul>`;
+    }
+  }
+  flowDraw(null);
+
+  /* ========== 演示 9.2 / 9.3:双清单 ========== */
+  function buildChecklist(listEl, ringEl, items) {
+    const total = items.length;
+    listEl.innerHTML = items.map((it, i) => `
+      <label class="ck-item"><input type="checkbox" data-i="${i}">
+        <span>${it.t}<small>${it.d}</small></span></label>`).join("");
+
+    const ring = document.getElementById(ringEl);
+    ring.innerHTML = `
+      <circle cx="65" cy="65" r="52" fill="none" stroke="#e9edf3" stroke-width="10"/>
+      <circle id="${ringEl}-bar" cx="65" cy="65" r="52" fill="none" stroke="#10b981" stroke-width="10"
+        stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"
+        transform="rotate(-90 65 65)" style="transition:stroke-dashoffset .4s, stroke .3s"/>
+      <text id="${ringEl}-txt" x="65" y="62" text-anchor="middle" font-size="24" font-weight="800" fill="#1e2530" font-family="var(--mono)">0%</text>
+      <text x="65" y="82" text-anchor="middle" font-size="10" fill="#8a94a3">完成度</text>`;
+
+    const boxes = listEl.querySelectorAll("input");
+    function update() {
+      const done = listEl.querySelectorAll("input:checked").length;
+      const pct = Math.round((done / total) * 100);
+      const bar = document.getElementById(ringEl + "-bar");
+      bar.setAttribute("stroke-dashoffset", 326.7 * (1 - done / total));
+      bar.setAttribute("stroke", pct === 100 ? "#2f6fed" : "#10b981");
+      document.getElementById(ringEl + "-txt").textContent = pct + "%";
+      boxes.forEach((b) => b.closest(".ck-item").classList.toggle("done", b.checked));
+      if (pct === 100) {
+        // 🎉 动画:环闪一下 + 文字变化
+        document.getElementById(ringEl + "-txt").textContent = "🎉";
+      }
+    }
+    boxes.forEach((b) => b.addEventListener("change", update));
+    listEl.dataset.resetHook = "1";
+    return update;
+  }
+
+  const DEPLOY = [
+    { t: "git 仓库已初始化并提交", d: "git init + 首次 commit 完成" },
+    { t: "推送到 GitHub 远程仓库", d: "git push -u origin main 成功" },
+    { t: "Settings → Pages 已开启", d: "Source: main / root(或 /docs)" },
+    { t: "https://用户名.github.io/仓库名 可访问", d: "等 1 分钟后强刷(Ctrl+F5)" },
+    { t: "相对路径检查通过", d: "本地 index.html 双击也能打开资源(不发 404)" },
+    { t: "README 写清:是什么 / 数据来源 / 如何运行", d: "三个月后的你会感谢它" },
+  ];
+  const QA = [
+    { t: "设计:10 秒内能看懂主题与结论", d: "标题 + 副标题直接给答案(第 6 章分层)" },
+    { t: "设计:图表类型与问题匹配", d: "比较用柱、趋势用线、关系用散点(第 3 章)" },
+    { t: "交互:悬停有反馈,动画 250–750ms", d: "有目的才动,炫技即删(第 5 章)" },
+    { t: "性能:首屏 &lt; 2s,无布局跳动", d: "LCP/CLS 达标,图片写宽高(第 1 章)" },
+    { t: "可访问性:颜色不是唯一编码", d: "加形状/标签;对比度 ≥ 4.5:1" },
+    { t: "数据:来源与清洗过程可追溯", d: "附数据文件 + 清洗日志(第 6 章)" },
+  ];
+  const upDeploy = buildChecklist(document.getElementById("deploy-list"), "deploy-ring", DEPLOY);
+  const upQa = buildChecklist(document.getElementById("qa-list"), "qa-ring", QA);
+  document.getElementById("ck-reset2").addEventListener("click", () => {
+    document.querySelectorAll("#deploy-list input").forEach((b) => (b.checked = false));
+    upDeploy();
+  });
+  document.getElementById("ck-reset").addEventListener("click", () => {
+    document.querySelectorAll("#qa-list input").forEach((b) => (b.checked = false));
+    upQa();
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 2 章 · D3.js 入门与 SVG 基础 — 可视化导论</title>
+<meta name="description" content="从 SVG 基本图形、D3 数据绑定与比例尺开始理解数据驱动文档。">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+  .svg-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .svg-toolbar button {
+    font-size: 13px; padding: 6px 14px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--border); background: #fff; color: var(--text-2); font-family: var(--mono);
+    transition: all .15s;
+  }
+  .svg-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+  .bind-bar { fill: #2f6fed; transition: all .6s cubic-bezier(.4,0,.2,1); }
+  .bind-bar.enter { fill: #10b981; }
+  .bind-bar.exit { fill: #ef4444; opacity: 0; }
+  .bind-val { font-size: 11px; fill: #5a6472; font-family: var(--mono); text-anchor: middle; transition: opacity .4s; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="../index.html"><span class="brand-mark">VIS</span><span>可视化导论</span></a>
+    <nav><a href="../index.html#chapters">全部章节</a></nav>
+  </div>
+</header>
+
+<div class="ch-layout">
+
+  <aside class="toc">
+    <a class="toc-back" href="../index.html">← 返回门户</a>
+    <div class="toc-ch">第 2 章 · 基础篇</div>
+    <a href="#kp1">2.1 SVG 图形基础</a>
+    <a href="#kp2">2.2 选择集与数据绑定</a>
+    <a href="#kp3">2.3 比例尺与坐标轴</a>
+  </aside>
+
+  <main>
+    <div class="ch-hero">
+      <span class="kicker">第 2 章 · 基础篇 · ★★☆</span>
+      <h1>D3.js 入门与 SVG 基础</h1>
+      <p class="lead">
+        D3(Data-Driven Documents)的名字就是它的全部思想:<strong>用数据驱动文档</strong>。
+        在动手 D3 之前先认识 SVG——网页上所有矢量图表的"原生语言";
+        再理解 D3 最核心也最容易被初学者卡住的机制:<strong>选择集 + 数据绑定</strong>。
+      </p>
+      <div class="ch-tags"><span>SVG</span><span>D3 选择集</span><span>数据绑定</span><span>比例尺</span></div>
+    </div>
+
+    <div class="objectives">
+      <h2>🎯 学习目标</h2>
+      <ul>
+        <li>认识 SVG 坐标系与 rect / circle / line / path / text 五类基本元素</li>
+        <li>理解 <code>selectAll → data → enter / update / exit</code> 的数据绑定流程</li>
+        <li>掌握 <code>scaleLinear</code> 线性比例尺,明白"为什么需要比例尺"</li>
+        <li>能用 D3 的链式语法写出第一版"数据驱动"的柱状图</li>
+      </ul>
+    </div>
+
+    <!-- ================= KP 2.1 ================= -->
+    <section class="kp" id="kp1">
+      <div class="kp-head"><span class="kp-badge">KP 2.1</span><h2>SVG:网页矢量图形的积木</h2></div>
+      <div class="kp-body">
+        <p>
+          SVG(Scalable Vector Graphics)用 XML 描述图形:每个图形是一个<strong>标签</strong>,
+         每个标签是一个<strong>DOM 元素</strong>。这带来两个关键性质:
+        </p>
+        <ul>
+          <li><strong>无限缩放不失真</strong>:存的是"圆心 + 半径"这样的几何指令,不是像素阵</li>
+          <li><strong>每个元素可单独交互</strong>:能像网页文字一样被选中、绑定事件、加 CSS 动画</li>
+        </ul>
+        <p>
+          SVG 坐标系以<strong>左上角为原点,x 向右、y 向下</strong>——y 轴向下这一点和数学课的习惯相反,
+          画柱状图时必须手动"翻转"(见 2.3)。
+        </p>
+        <div class="note">💡 五类积木就能拼出几乎所有统计图表:矩形(柱)、圆(散点/节点)、线(折线/坐标轴)、
+        路径(任意曲线/饼图扇区)、文本(标签)。复杂的 <code>&lt;path&gt;</code> 只是折线段的紧凑写法。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>svg-basics.html</div>
+        <button class="copy">复制</button>
+<pre><code>&lt;svg width="400" height="200" viewBox="0 0 400 200"&gt;
+  &lt;!-- 矩形:x,y 为左上角 --&gt;
+  &lt;rect x="20" y="140" width="40" height="50" fill="#2f6fed"/&gt;
+
+  &lt;!-- 圆:cx,cy 为圆心 --&gt;
+  &lt;circle cx="120" cy="150" r="25" fill="#0ea5a5"/&gt;
+
+  &lt;!-- 线:x1,y1 → x2,y2 --&gt;
+  &lt;line x1="180" y1="60" x2="280" y2="160" stroke="#f59e0b" stroke-width="4"/&gt;
+
+  &lt;!-- 路径:M 移动到,L 连线到,Z 闭合 --&gt;
+  &lt;path d="M 300 160 L 330 100 L 360 160 Z" fill="#8b5cf6"/&gt;
+
+  &lt;!-- 文本 --&gt;
+  &lt;text x="200" y="30" text-anchor="middle" font-size="14"&gt;SVG 基本元素&lt;/text&gt;
+&lt;/svg&gt;</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 元素积木场(悬停查看对应代码)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <button class="primary" id="s-add-all">一键放全部</button>
+            <button id="s-clear">清空画布</button>
+          </div>
+        </div>
+        <div class="demo-body">
+          <div class="svg-toolbar">
+            <button data-el="rect">rect 矩形</button>
+            <button data-el="circle">circle 圆</button>
+            <button data-el="line">line 线</button>
+            <button data-el="path">path 路径</button>
+            <button data-el="text">text 文本</button>
+          </div>
+          <svg id="s-canvas" viewBox="0 0 640 220" style="width:100%;border:1px dashed var(--border);border-radius:10px;background:#fbfcfe">
+            <text x="320" y="115" text-anchor="middle" font-size="13" fill="#c3cad6" id="s-placeholder">点击上方按钮,把元素放进画布 ↑</text>
+          </svg>
+          <div id="s-codeview" style="margin-top:12px;font-family:var(--mono);font-size:12.5px;background:var(--bg-code);color:#dce4f5;border-radius:8px;padding:10px 14px;min-height:20px">悬停画布中的元素,这里显示它的"出生代码"……</div>
+        </div>
+        <div class="demo-tip">提示:每个按钮放入的元素位置、大小都带随机扰动——体会"同一份标签,不同属性值"。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 2.2 ================= -->
+    <section class="kp" id="kp2">
+      <div class="kp-head"><span class="kp-badge">KP 2.2</span><h2>选择集与数据绑定:D3 的心脏</h2></div>
+      <div class="kp-body">
+        <p>
+          原生写法是"先有元素,再填内容";D3 反过来:<strong>先声明数据,让数据自己去"长出"元素</strong>。
+          核心三步:
+        </p>
+        <ul>
+          <li><code>d3.select / selectAll</code>:选中(或准备好)一组元素</li>
+          <li><code>.data(arr)</code>:把数组逐项绑定到元素上,按<strong>索引</strong>配对</li>
+          <li><code>.join(enter ⇒ …, update ⇒ …, exit ⇒ …)</code>:数据比元素<strong>多</strong>的部分进 enter(创建新元素),
+              <strong>少</strong>的部分进 exit(移除旧元素),配对成功的进 update(原地更新)</li>
+        </ul>
+        <p>
+          这套机制的威力在<strong>数据变化</strong>时显现:新数据到来,图表不是推倒重来,
+          而是"多的补、少的删、对应的改"——页面上的每个柱子保持身份连续,过渡动画因此才成为可能。
+        </p>
+        <div class="note">💡 记忆法:数据是宾客,元素是座位。<code>join</code> 就是"来宾入座、多余宾客加座、空座撤走"。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>d3-bind.js</div>
+        <button class="copy">复制</button>
+<pre><code>const data = [30, 86, 60, 45];
+
+const bars = d3.select("svg")
+  .selectAll("rect")                 // 1. 准备选择集(可以为空)
+  .data(data, d =&gt; d);              // 2. 绑定数据(按值配对)
+
+bars.join(
+  (enter) =&gt; enter.append("rect")           // 数据多了 → 新建
+          .attr("class", "bind-bar")
+          .attr("x", (d, i) =&gt; i * 60)
+          .attr("width", 40),
+  (update) =&gt; update                         // 数据变了 → 原地改
+          .transition().duration(600)
+          .attr("y", d =&gt; 180 - d)
+          .attr("height", d =&gt; d),
+  (exit) =&gt; exit.remove()                    // 数据少了 → 移除
+);</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · enter / update / exit 实况</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <button class="primary" id="b-update">🎲 换一批数据</button>
+            <button id="b-add">+1 条</button>
+            <button id="b-remove">−1 条</button>
+          </div>
+        </div>
+        <div class="demo-body">
+          <svg id="b-svg" viewBox="0 0 640 220" style="width:100%"></svg>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;margin-top:8px">
+            <span style="color:#10b981">■ enter:新建(绿)</span>
+            <span style="color:#2f6fed">■ update:更新(蓝)</span>
+            <span style="color:#ef4444">■ exit:移除(红,淡出)</span>
+            <span style="margin-left:auto;color:var(--text-3);font-family:var(--mono)" id="b-data">data = []</span>
+          </div>
+        </div>
+        <div class="demo-tip">提示:点「换一批数据」数次,注意观察:值相同的柱子保持不动,新值从底部绿色长出,消失的红色淡出——这就是 join 的三路分发。</div>
+      </div>
+    </section>
+
+    <!-- ================= KP 2.3 ================= -->
+    <section class="kp" id="kp3">
+      <div class="kp-head"><span class="kp-badge">KP 2.3</span><h2>比例尺:从数据世界到像素世界</h2></div>
+      <div class="kp-body">
+        <p>
+          数据的取值范围千奇百怪:气温 −20~40 ℃、GDP 数万亿、百分比 0~100。
+          屏幕却只有几百像素。<strong>比例尺(Scale)就是两个世界之间的换算函数</strong>:
+        </p>
+        <p style="text-align:center;font-family:var(--mono);background:var(--bg-soft);border-radius:8px;padding:10px;margin:12px 0">
+          像素位置 = scale(数据值) &nbsp;·&nbsp; scale = d3.scaleLinear()<br>.domain([数据最小, 数据最大]).range([像素最小, 像素最大])
+        </p>
+        <p>
+          为什么不直接拿数据当像素?三个理由:
+        </p>
+        <ul>
+          <li><strong>自适应</strong>:数据更新(最大值变了)时,只需重算 scale,所有元素统一重排</li>
+          <li><strong>防越界</strong>:保证任何数据都被映射进画布内,不会画出屏幕</li>
+          <li><strong>坐标轴配套</strong>:刻度线由 scale 生成,图和轴永远一致</li>
+        </ul>
+        <div class="note warn">⚠️ y 轴翻转陷阱:SVG 的 y 向下,所以柱状图的 range 要写 <code>[height, 0]</code>(大值 → 小 y),
+        柱子才会"向上长"。漏掉这一步是初学者第一张图"倒着长"的头号原因。</div>
+      </div>
+
+      <div class="codeblock">
+        <div class="code-head"><span class="dots"><i></i><i></i><i></i></span>d3-scale.js</div>
+        <button class="copy">复制</button>
+<pre><code>const W = 600, H = 200, PAD = 30;
+const data = [12, 45, 30, 68, 25];
+
+// 线性比例尺:数据 → 像素。注意 y 方向 [H-PAD, PAD] 的"翻转"
+const y = d3.scaleLinear()
+  .domain([0, d3.max(data)])          // 输入域:0 到数据最大值
+  .range([H - PAD, PAD]);             // 输出域:底部到顶部(y 向下!)
+
+svg.selectAll("rect")
+  .data(data)
+  .join("rect")
+  .attr("x", (d, i) =&gt; PAD + i * 90)
+  .attr("y", d =&gt; y(d))              // 关键:高度先过比例尺
+  .attr("height", d =&gt; y(0) - y(d))
+  .attr("width", 60);
+
+// 坐标轴:刻度由同一个 scale 生成,天然对齐
+svg.append("g")
+  .attr("transform", `translate(0,${H - PAD})`)
+  .call(d3.axisBottom(x));</code></pre>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span class="dot"></span><h3>演示 · 比例尺联动(拖动滑块,观察重排)</h3>
+          <span class="spacer"></span>
+          <div class="demo-ctrl">
+            <label for="sc-max">数据最大值 <b id="sc-maxv" style="color:var(--accent)">100</b></label>
+            <input type="range" id="sc-max" min="40" max="300" value="100">
+            <label>最大值约束 <select id="sc-mode"><option value="data">跟随数据</option><option value="fixed">固定 300</option></select></label>
+          </div>
+        </div>
+        <div class="demo-body">
+          <svg id="sc-svg" viewBox="0 0 640 240" style="width:100%"></svg>
+        </div>
+        <div class="demo-tip">提示:数据不变,把最大值从 100 拖到 300 —— 所有柱子按比例整体变矮,刻度同步加密。这就是"一处换算,全局一致"。</div>
+      </div>
+    </section>
+
+    <div class="ch-pager">
+      <a href="ch1-1.html"><span class="dir">← 上一章</span><span class="ttl">第 1 章 · 渐进式加载网页图片</span></a>
+      <a class="next" href="ch1-3.html"><span class="dir">下一章 →</span><span class="ttl">第 3 章 · D3.js 常用图表</span></a>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/main.js"></script>
+<script src="../assets/lesson.js"></script>
+<script>
+(function () {
+  const V = window.Vis;
+
+  /* ========== 演示 2.1:SVG 元素积木场 ========== */
+  const sSvg = document.getElementById("s-canvas");
+  const codeview = document.getElementById("s-codeview");
+  const placeholder = document.getElementById("s-placeholder");
+  const rnd = (a, b) => a + Math.random() * (b - a);
+
+  const makers = {
+    rect() {
+      const x = rnd(30, 420), y = rnd(80, 140), w = rnd(40, 90), h = rnd(30, 70);
+      return { el: V.svgEl("rect", { x, y, width: w, height: h, fill: "#2f6fed", rx: 4 }),
+        code: `<rect x="${x.toFixed(0)}" y="${y.toFixed(0)}" width="${w.toFixed(0)}" height="${h.toFixed(0)}" fill="#2f6fed"/>` };
+    },
+    circle() {
+      const cx = rnd(60, 560), cy = rnd(60, 170), r = rnd(15, 35);
+      return { el: V.svgEl("circle", { cx, cy, r, fill: "#0ea5a5" }),
+        code: `<circle cx="${cx.toFixed(0)}" cy="${cy.toFixed(0)}" r="${r.toFixed(0)}" fill="#0ea5a5"/>` };
+    },
+    line() {
+      const x1 = rnd(40, 260), y1 = rnd(70, 170), x2 = x1 + rnd(120, 260), y2 = rnd(70, 170);
+      return { el: V.svgEl("line", { x1, y1, x2, y2, stroke: "#f59e0b", "stroke-width": 4, "stroke-linecap": "round" }),
+        code: `<line x1="${x1.toFixed(0)}" y1="${y1.toFixed(0)}" x2="${x2.toFixed(0)}" y2="${y2.toFixed(0)}" stroke="#f59e0b" stroke-width="4"/>` };
+    },
+    path() {
+      const x = rnd(80, 420), y = rnd(100, 150);
+      const d = `M ${x} ${y} L ${x + 40} ${y - 60} L ${x + 80} ${y} Z`;
+      return { el: V.svgEl("path", { d, fill: "#8b5cf6" }), code: `<path d="${d}" fill="#8b5cf6"/>` };
+    },
+    text() {
+      const x = rnd(200, 440), y = rnd(50, 200);
+      const el = V.svgEl("text", { x, y, "font-size": 16, fill: "#ef4444" });
+      el.textContent = "可视化";
+      return { el, code: `<text x="${x.toFixed(0)}" y="${y.toFixed(0)}" font-size="16" fill="#ef4444">可视化</text>` };
+    },
+  };
+
+  function addEl(name) {
+    placeholder.style.display = "none";
+    const { el, code } = makers[name]();
+    el.style.cursor = "pointer";
+    el.addEventListener("mouseenter", () => {
+      el.setAttribute("stroke", "#1e2530");
+      el.setAttribute("stroke-width", "2");
+      codeview.textContent = code;
+    });
+    el.addEventListener("mouseleave", () => {
+      el.removeAttribute("stroke");
+      el.removeAttribute("stroke-width");
+    });
+    sSvg.appendChild(el);
+    codeview.textContent = code;
+  }
+  document.querySelectorAll(".svg-toolbar button").forEach((b) =>
+    b.addEventListener("click", () => addEl(b.dataset.el)));
+  document.getElementById("s-add-all").addEventListener("click", () =>
+    Object.keys(makers).forEach(addEl));
+  document.getElementById("s-clear").addEventListener("click", () => {
+    sSvg.querySelectorAll("rect,circle,line,path,text").forEach((n) => n.remove());
+    placeholder.style.display = "";
+    codeview.textContent = "悬停画布中的元素,这里显示它的\"出生代码\"……";
+  });
+
+  /* ========== 演示 2.2:enter/update/exit(纯 JS 模拟 D3 join) ========== */
+  const bSvg = document.getElementById("b-svg");
+  const dataLabel = document.getElementById("b-data");
+  let data = [42, 75, 30, 60];
+
+  function renderData(newData) {
+    // key = 值 + 出现序号,避免重复值配对冲突(模拟 D3 按 key 配对)
+    const occ = new Map();
+    const newKeys = newData.map((v) => {
+      const n = occ.get(v) || 0;
+      occ.set(v, n + 1);
+      return v + "#" + n;
+    });
+    // 旧元素按 key 索引
+    const old = new Map(), oldLbl = new Map();
+    bSvg.querySelectorAll(".bind-bar").forEach((r) => old.set(r.dataset.key, r));
+    bSvg.querySelectorAll(".bind-val").forEach((t) => oldLbl.set(t.dataset.key, t));
+    const kept = new Set(newKeys);
+
+    // exit:旧数据里不在新数据中的 → 红色淡出后移除
+    old.forEach((el, k) => {
+      if (!kept.has(k)) {
+        el.classList.add("exit");
+        setTimeout(() => el.remove(), 600);
+        const lbl = oldLbl.get(k);
+        if (lbl) { lbl.style.opacity = 0; setTimeout(() => lbl.remove(), 600); }
+      }
+    });
+
+    const W = 640, H = 200, pad = 20;
+    const bw = Math.min(64, (W - pad * 2) / newData.length - 14);
+    const maxV = 90;
+    newData.forEach((v, i) => {
+      const key = newKeys[i];
+      let rect = old.get(key);
+      if (!rect) {
+        rect = V.svgEl("rect", { class: "bind-bar enter", width: bw, rx: 5 });
+        rect.dataset.key = key;
+        bSvg.appendChild(rect);
+        setTimeout(() => rect.classList.remove("enter"), 900);   // 让"新长出"的绿停留一会
+      }
+      const x = pad + i * ((W - pad * 2) / newData.length) + 7;
+      const h = (v / maxV) * (H - 50);
+      rect.setAttribute("x", x);
+      rect.setAttribute("y", H - 30 - h);
+      rect.setAttribute("height", h);
+      rect.setAttribute("width", bw);
+      // 值标签
+      let lbl = oldLbl.get(key);
+      if (!lbl) {
+        lbl = V.svgEl("text", { class: "bind-val" });
+        lbl.dataset.key = key;
+        lbl.textContent = v;
+        bSvg.appendChild(lbl);
+      }
+      lbl.setAttribute("x", x + bw / 2);
+      lbl.setAttribute("y", H - 30 - h - 6);
+    });
+    dataLabel.textContent = "data = [" + newData.join(", ") + "]";
+  }
+  document.getElementById("b-update").addEventListener("click", () => {
+    const n = 3 + Math.floor(Math.random() * 3);
+    data = Array.from({ length: n }, () => 15 + Math.floor(Math.random() * 75));
+    renderData(data);
+  });
+  document.getElementById("b-add").addEventListener("click", () => {
+    if (data.length >= 8) return;
+    data.push(15 + Math.floor(Math.random() * 75));
+    renderData(data);
+  });
+  document.getElementById("b-remove").addEventListener("click", () => {
+    if (data.length <= 1) return;
+    data.pop();
+    renderData(data);
+  });
+  renderData(data);
+
+  /* ========== 演示 2.3:比例尺联动 ========== */
+  const scSvg = document.getElementById("sc-svg");
+  const scMax = document.getElementById("sc-max");
+  const scMaxv = document.getElementById("sc-maxv");
+  const scMode = document.getElementById("sc-mode");
+  const scData = [82, 45, 67, 30, 91, 55];
+  const months = ["1月", "2月", "3月", "4月", "5月", "6月"];
+  const W = 640, H = 240, PADL = 44, PADB = 34;
+
+  function scRender() {
+    const maxData = Math.max(...scData);
+    const domainMax = scMode.value === "fixed" ? +scMax.value : maxData * 1.1;
+    scMaxv.textContent = domainMax.toFixed(0);
+    const y = V.scaleLinear(0, domainMax, H - PADB, 16);
+    const bw = (W - PADL - 16) / scData.length - 12;
+
+    let g = scSvg.querySelector("g.plot");
+    if (!g) { g = V.svgEl("g", { class: "plot" }); scSvg.appendChild(g); }
+    g.innerHTML = "";
+
+    // 网格线 + y 轴刻度(由同一个 scale 生成)
+    for (let t = 0; t <= domainMax; t += domainMax / 4) {
+      const yy = y(t);
+      g.appendChild(V.svgEl("line", { x1: PADL, x2: W - 10, y1: yy, y2: yy, stroke: "#e9edf3", "stroke-width": 1 }));
+      const lb = V.svgEl("text", { x: PADL - 8, y: yy + 4, "text-anchor": "end", "font-size": 11, fill: "#8a94a3", "font-family": "var(--mono)" });
+      lb.textContent = Math.round(t);
+      g.appendChild(lb);
+    }
+    // 柱
+    scData.forEach((d, i) => {
+      const x = PADL + i * ((W - PADL - 16) / scData.length) + 6;
+      const bar = V.svgEl("rect", {
+        x, y: y(d), width: bw, height: y(0) - y(d), fill: V.palette[i % 4], rx: 4, opacity: .9,
+      });
+      bar.style.transition = "all .25s";
+      // 值标签
+      const vb = V.svgEl("text", { x: x + bw / 2, y: y(d) - 6, "text-anchor": "middle", "font-size": 11, fill: "#5a6472", "font-family": "var(--mono)" });
+      vb.textContent = d;
+      // x 轴月份
+      const xb = V.svgEl("text", { x: x + bw / 2, y: H - 12, "text-anchor": "middle", "font-size": 11.5, fill: "#8a94a3" });
+      xb.textContent = months[i];
+      g.appendChild(bar); g.appendChild(vb); g.appendChild(xb);
+    });
+    // 轴线
+    g.appendChild(V.svgEl("line", { x1: PADL, x2: W - 10, y1: H - PADB, y2: H - PADB, stroke: "#c3cad6" }));
+    g.appendChild(V.svgEl("line", { x1: PADL, x2: PADL, y1: 12, y2: H - PADB, stroke: "#c3cad6" }));
+    // 域标注
+    const dm = V.svgEl("text", { x: W - 10, y: 12, "text-anchor": "end", "font-size": 11, fill: "#8a94a3" });
+    dm.textContent = `domain [0, ${domainMax.toFixed(0)}] → range [${H - PADB}, 16]`;
+    g.appendChild(dm);
+  }
+  scMax.addEventListener("input", scRender);
+  scMode.addEventListener("change", scRender);
+  scRender();
+})();
+</script>
+</body>
+</html>
